@@ -7,13 +7,34 @@
 
 import Foundation
 
-struct GeocodingResponse: Codable {
-    let results: [City]
+// geocoding
+
+struct GeocodingResponse: Hashable, Codable {
+    let results: [City]?
 }
 
-struct City: Codable, Hashable {
+struct City: Hashable, Codable {
     let name: String
     let latitude: Double
     let longitude: Double
     let country: String
+
+    let admin1: String?
+    let timezone: String?
+}
+
+// forecast
+
+struct ForecastResponse: Hashable, Codable {
+    let latitude: Double
+    let longitude: Double
+    let timezone: String
+    let daily: DailyForecast
+}
+
+struct DailyForecast: Hashable, Codable {
+    let time: [String]
+    let temperature_2m_max: [Double]
+    let temperature_2m_min: [Double]
+    let precipitation_probability_max: [Int]?
 }
