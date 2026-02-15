@@ -11,6 +11,8 @@
 		6B7E8F992F3E7CCB000F3499 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B7E8F982F3E7CCB000F3499 /* ContentView.swift */; };
 		6B7E8F9B2F3E7CCE000F3499 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6B7E8F9A2F3E7CCE000F3499 /* Assets.xcassets */; };
 		6B7E8F9E2F3E7CCE000F3499 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6B7E8F9D2F3E7CCE000F3499 /* Preview Assets.xcassets */; };
+		6BDD58A02F418AAA00D03DFB /* OpenMeteoAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BDD589F2F418AAA00D03DFB /* OpenMeteoAPI.swift */; };
+		6BDD58A22F419A7C00D03DFB /* OpenMeteoModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BDD58A12F419A7C00D03DFB /* OpenMeteoModels.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -19,6 +21,8 @@
 		6B7E8F982F3E7CCB000F3499 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		6B7E8F9A2F3E7CCE000F3499 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6B7E8F9D2F3E7CCE000F3499 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		6BDD589F2F418AAA00D03DFB /* OpenMeteoAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenMeteoAPI.swift; sourceTree = "<group>"; };
+		6BDD58A12F419A7C00D03DFB /* OpenMeteoModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenMeteoModels.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -52,7 +56,10 @@
 			isa = PBXGroup;
 			children = (
 				6B7E8F962F3E7CCB000F3499 /* GreenlightApp.swift */,
-				6B7E8F982F3E7CCB000F3499 /* ContentView.swift */,
+				6BDD589B2F418A0000D03DFB /* API */,
+				6BDD589C2F418A1400D03DFB /* Model */,
+				6BDD589D2F418A2500D03DFB /* Views */,
+				6BDD589E2F418A3300D03DFB /* Resources */,
 				6B7E8F9A2F3E7CCE000F3499 /* Assets.xcassets */,
 				6B7E8F9C2F3E7CCE000F3499 /* Preview Content */,
 			);
@@ -65,6 +72,37 @@
 				6B7E8F9D2F3E7CCE000F3499 /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		6BDD589B2F418A0000D03DFB /* API */ = {
+			isa = PBXGroup;
+			children = (
+				6BDD589F2F418AAA00D03DFB /* OpenMeteoAPI.swift */,
+			);
+			path = API;
+			sourceTree = "<group>";
+		};
+		6BDD589C2F418A1400D03DFB /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				6BDD58A12F419A7C00D03DFB /* OpenMeteoModels.swift */,
+			);
+			path = Model;
+			sourceTree = "<group>";
+		};
+		6BDD589D2F418A2500D03DFB /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				6B7E8F982F3E7CCB000F3499 /* ContentView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		6BDD589E2F418A3300D03DFB /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -137,8 +175,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6BDD58A22F419A7C00D03DFB /* OpenMeteoModels.swift in Sources */,
 				6B7E8F992F3E7CCB000F3499 /* ContentView.swift in Sources */,
 				6B7E8F972F3E7CCB000F3499 /* GreenlightApp.swift in Sources */,
+				6BDD58A02F418AAA00D03DFB /* OpenMeteoAPI.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
