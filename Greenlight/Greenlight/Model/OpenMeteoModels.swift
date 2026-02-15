@@ -14,12 +14,14 @@ struct GeocodingResponse: Hashable, Codable {
 }
 
 struct City: Hashable, Codable {
+    let id: Int
     let name: String
     let latitude: Double
     let longitude: Double
     let country: String
-
+    let country_code: String?
     let admin1: String?
+    let population: Int?
     let timezone: String?
 }
 

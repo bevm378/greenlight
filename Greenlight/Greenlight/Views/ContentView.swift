@@ -10,52 +10,103 @@ import SwiftUI
 struct ContentView: View {
     @State private var query: String = ""
     @State private var cities: [City] = []
+    @State private var isLoading = false
+    @State private var errorMessage: String? = nil
 
-    @State private var selectedCity: City?
-    @State private var forecast: ForecastResponse?
+    @State private var searchTask: Task<Void, Never>? = nil
+    @State private var selectedCity: City? = nil
 
     var body: some View {
-        VStack {
-            Text("City Search")
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 12) {
+                TextField("Search for a city", text: $query)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled()
+                    .padding(10)
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .padding(.horizontal)
 
-            TextField("Search city...", text: $query)
-                .textFieldStyle(.roundedBorder)
-                .padding(.horizontal)
+                if isLoading {
+                    HStack{
+                        Spacer()
+                        ProgressView()
+                        Spacer()
+                    }
+                    .padding(.top, 6)
+                }
 
-            List(cities, id: \.self) { city in
-                Button {
-                    selectedCity = city
-                    Task {
-                        do {
-                            forecast = try await getForecast(lat: city.latitude, lon: city.longitude)
-                        } catch {
-                            print(error)
+                if let errorMessage {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                        .font(.footnote)
+                        .padding(.horizontal)
+                }
+
+                List {
+                    if let selectedCity {
+                        Section("Selected") {
+                            Text("\(selectedCity.name), \(selectedCity.admin1 ?? selectedCity.country)")
                         }
                     }
-                } label: {
-                    Text("\(city.name), \(city.country)")
-                }
-            }
 
-            if let city = selectedCity, let f = forecast {
-                let d = f.daily
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Forecast for \(city.name)")
-                        .font(.headline)
-
-                    // show day 0 as a proof-of-life
-                    if !d.time.isEmpty {
-                        Text("Date: \(d.time[0])")
-                        Text("High: \(d.temperature_2m_max[0])°")
-                        Text("Low: \(d.temperature_2m_min[0])°")
-                        if let pop = d.precipitation_probability_max, !pop.isEmpty {
-                            Text("Rain chance: \(pop[0])%")
+                    Section("Results") {
+                        ForEach(cities, id: \.id) { city in
+                            Button {
+                                selectedCity = city
+                            } label: {
+                                Text("\(city.name), \(city.admin1 ?? city.country), \(city.country_code ?? "")")
+                            }
                         }
                     }
                 }
-                .padding()
             }
+            .navigationTitle("City Search")
         }
+        .onChange(of: query) { _, newValue in
+            scheduleSearch(newValue)
+        }
+    }
+
+    private func scheduleSearch(_ raw: String) {
+        searchTask?.cancel()
+
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            cities = []
+            errorMessage = nil
+            isLoading = false
+            return
+        }
+
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 350_000_000) // debounce
+            if Task.isCancelled { return }
+            await runSearch(trimmed)
+        }
+    }
+
+    @MainActor
+    private func runSearch(_ trimmed: String) async {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let results = try await searchCities(query: trimmed, count: 10)
+            var seen = Set<Int>()
+            cities = results.filter { seen.insert($0.id).inserted }
+        } catch OpenMeteoAPIError.noResults {
+            cities = []
+            errorMessage = "No results"
+        } catch OpenMeteoAPIError.decodeFailed {
+            cities = []
+            errorMessage = "Couldn’t decode the response"
+        } catch {
+            cities = []
+            errorMessage = "Something went wrong"
+        }
+
+        isLoading = false
     }
 }
 
