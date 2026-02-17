@@ -92,9 +92,34 @@ struct ContentView: View {
         errorMessage = nil
 
         do {
-            let results = try await searchCities(query: trimmed, count: 10)
+            let results = try await searchCities(query: trimmed, count: 25)
+            
+            let q = trimmed
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased()
+            
+            var filtered = results.filter {city in
+                city.name.lowercased().hasPrefix(q)
+            }
+            
             var seen = Set<Int>()
-            cities = results.filter { seen.insert($0.id).inserted }
+            filtered = filtered.filter { seen.insert($0.id).inserted }
+            
+            filtered.sort {
+                let aExact = $0.name.lowercased() == q
+                let bExact = $1.name.lowercased() == q
+                if aExact != bExact { return aExact && !bExact }
+                
+                let aPop = $0.population ?? -1
+                let bPop = $1.population ?? -1
+                if aPop != bPop { return aPop > bPop }
+                return $0.name < $1.name
+                
+            }
+            
+            cities = filtered
+            if cities.isEmpty { errorMessage = "No results" }
+            
         } catch OpenMeteoAPIError.noResults {
             cities = []
             errorMessage = "No results"
