@@ -1,5 +1,5 @@
-.DS_Store
-**/.DS_Store
+# Xcode user data
 xcuserdata/
 *.xcuserstate
-*.xcuserstate
+.DS_Store
+DerivedData/
