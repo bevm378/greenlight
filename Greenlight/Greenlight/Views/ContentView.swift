@@ -8,12 +8,21 @@
 import SwiftUI
 
 struct ContentView: View {
+    
+    // user's search text
     @State private var query: String = ""
+    
+    // current list of results being shown
     @State private var cities: [City] = []
+    
+    // UI state flaps/messages
     @State private var isLoading = false
     @State private var errorMessage: String? = nil
 
+    // used for debouncing (canceling old search if user keeps typing)
     @State private var searchTask: Task<Void, Never>? = nil
+    
+    // city the user tapped
     @State private var selectedCity: City? = nil
 
     var body: some View {
@@ -27,6 +36,7 @@ struct ContentView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .padding(.horizontal)
 
+                // spinner while waiting for network results
                 if isLoading {
                     HStack{
                         Spacer()
@@ -36,6 +46,7 @@ struct ContentView: View {
                     .padding(.top, 6)
                 }
 
+                // user-facing error message
                 if let errorMessage {
                     Text(errorMessage)
                         .foregroundStyle(.red)
@@ -44,12 +55,14 @@ struct ContentView: View {
                 }
 
                 List {
+                    // "selected" section appears if user tapped a city
                     if let selectedCity {
                         Section("Selected") {
                             Text("\(selectedCity.name), \(selectedCity.admin1 ?? selectedCity.country)")
                         }
                     }
 
+                    // results list (buttons for user to tap)
                     Section("Results") {
                         ForEach(cities, id: \.id) { city in
                             Button {
@@ -63,24 +76,31 @@ struct ContentView: View {
             }
             .navigationTitle("City Search")
         }
+        // every time query changes, schedule a debounced search
         .onChange(of: query) { _, newValue in
             scheduleSearch(newValue)
         }
     }
 
     private func scheduleSearch(_ raw: String) {
+        // cancel previous pending search (debounce)
         searchTask?.cancel()
 
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty {
+        
+        // don't hit the API until user typed at least 3 characters
+        // reduce jumpy error states
+        if trimmed.count < 3 {
             cities = []
             errorMessage = nil
             isLoading = false
             return
         }
-
+        
+        // don't search on every keystroke
+        // run search after a short delay
         searchTask = Task {
-            try? await Task.sleep(nanoseconds: 350_000_000) // debounce
+            try? await Task.sleep(nanoseconds: 350_000_000) // 0.35s debounce
             if Task.isCancelled { return }
             await runSearch(trimmed)
         }
@@ -92,19 +112,32 @@ struct ContentView: View {
         errorMessage = nil
 
         do {
+            // ask API for candidates
             let results = try await searchCities(query: trimmed, count: 25)
             
+            // normalize the query once for comparisons
             let q = trimmed
                 .trimmingCharacters(in: .whitespacesAndNewlines)
                 .lowercased()
             
+            // show "No results" once user typed enough characters
+            let minChars = 3
+            let shouldShowNoResults = q.count >= minChars
+            
+            // filter to only cities whose name starts with what user typed
+            // ex: "New York" should only show "New York..." and not "Florence"
             var filtered = results.filter {city in
                 city.name.lowercased().hasPrefix(q)
             }
             
+            // remove duplicates by city id
             var seen = Set<Int>()
             filtered = filtered.filter { seen.insert($0.id).inserted }
             
+            // sorting priority:
+            // 1) exact name match first (ex: "New York" == "New York")
+            // 2) higher population next (more likely what user means)
+            // 3) alphabetical as tie-breaker
             filtered.sort {
                 let aExact = $0.name.lowercased() == q
                 let bExact = $1.name.lowercased() == q
@@ -118,17 +151,22 @@ struct ContentView: View {
             }
             
             cities = filtered
-            if cities.isEmpty { errorMessage = "No results" }
+            errorMessage = (cities.isEmpty && shouldShowNoResults) ? "No results" : nil
             
         } catch OpenMeteoAPIError.noResults {
+            // API decoded fine but results empty
             cities = []
             errorMessage = "No results"
         } catch OpenMeteoAPIError.decodeFailed {
+            //don't scare users with this, log for me :)
             cities = []
-            errorMessage = "Couldn’t decode the response"
+            errorMessage = nil
+            print("Decode failed for query:", trimmed)
         } catch {
+            // also log for me :D
             cities = []
-            errorMessage = "Something went wrong"
+            errorMessage = nil
+            print("Search failed:", error)
         }
 
         isLoading = false
