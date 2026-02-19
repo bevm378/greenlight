@@ -21,9 +21,6 @@ struct ContentView: View {
 
     // used for debouncing (canceling old search if user keeps typing)
     @State private var searchTask: Task<Void, Never>? = nil
-    
-    // city the user tapped
-    @State private var selectedCity: City? = nil
 
     var body: some View {
         NavigationStack {
@@ -55,18 +52,12 @@ struct ContentView: View {
                 }
 
                 List {
-                    // "selected" section appears if user tapped a city
-                    if let selectedCity {
-                        Section("Selected") {
-                            Text("\(selectedCity.name), \(selectedCity.admin1 ?? selectedCity.country)")
-                        }
-                    }
 
                     // results list (buttons for user to tap)
                     Section("Results") {
                         ForEach(cities, id: \.id) { city in
-                            Button {
-                                selectedCity = city
+                            NavigationLink {
+                                ForecastView(city: city)
                             } label: {
                                 Text("\(city.name), \(city.admin1 ?? city.country), \(city.country_code ?? "")")
                             }
