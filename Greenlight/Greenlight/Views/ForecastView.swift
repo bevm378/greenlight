@@ -10,11 +10,13 @@ import SwiftUI
 struct ForecastView: View {
     let city: City
 
+    // UI state
     @State private var isLoading = false
     @State private var forecast: ForecastResponse? = nil
     @State private var errorMessage: String? = nil
     
-    private let apiDateFormatter: DateFormatter = {
+    // parse API dates like "2026-02-19"
+    private static let apiDateFormatter: DateFormatter = {
         let df = DateFormatter()
         df.calendar = Calendar(identifier: .iso8601)
         df.locale = Locale(identifier: "en_US_POSIX")
@@ -22,57 +24,95 @@ struct ForecastView: View {
         return df
     }()
 
-    private let displayDateFormatter: DateFormatter = {
+    // display dates like "Thu, Feb 19"
+    private static let displayDateFormatter: DateFormatter = {
         let df = DateFormatter()
         df.locale = Locale.current
         df.dateFormat = "EEE, MMM d"
         return df
     }()
 
+    // nice date string
     private func prettyDate(_ apiDate: String) -> String {
-        guard let d = apiDateFormatter.date(from: apiDate) else { return apiDate }
-        return displayDateFormatter.string(from: d)
+        guard let d = Self.apiDateFormatter.date(from: apiDate) else { return apiDate }
+        return Self.displayDateFormatter.string(from: d)
     }
 
+    // format temps like " 5°" or "10°"
     private func tempString(_ value: Double) -> String {
         String(format: "%2d°", Int(value.rounded()))
     }
 
+    // format POP like " 10%" or "100%"
     private func popString(_ value: Int) -> String {
         String(format: "%3d%%", value)
     }
 
     private func forecastRow(dateText: String, hi: Double, lo: Double, pop: Int?) -> some View {
-        HStack(spacing: 12) {
+        
+        
+        HStack(spacing: 10) {
+            
+            //left: fixed-width date column
             Text(dateText)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(width: 100, alignment: .leading)
+                .lineLimit(1)
 
-            HStack(spacing: 8) {
-                Text("H \(tempString(hi))")
-                Text("L \(tempString(lo))")
+            // middle: fixed-width temps
+            HStack(spacing: 6) {
+                Text("H\(tempString(hi))")
+                Text("L\(tempString(lo))")
                     .foregroundStyle(.secondary)
             }
-            .monospacedDigit()
-            .frame(width: 120, alignment: .trailing)
+            .font(.system(.body, design: .monospaced))
+            .lineLimit(1)
+            .fixedSize(horizontal: /*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/, vertical: false)
+            .frame(width: 100, alignment: .trailing)
 
+            // right: fixed-width precip
             HStack(spacing: 6) {
                 Image(systemName: "umbrella.fill")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .frame(width: 14)
+                    .frame(width: 14, alignment: .center)
 
-                Text(pop.map(popString) ?? "  --")
+                Text(pop.map(popString) ?? "")
             }
-            .monospacedDigit()
+            .font(.system(.body, design: .monospaced))
             .foregroundStyle(.secondary)
-            .frame(width: 70, alignment: .trailing)
+            .frame(width: 80, alignment: .trailing)
         }
         .padding(.vertical, 6)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // ...
+            
+            // header
+            Text("\(city.name), \(city.admin1 ?? city.country)")
+                            .font(.title2)
+                            .bold()
+                            .padding(.horizontal)
+
+            // loading spinner
+            if isLoading {
+                HStack {
+                    Spacer()
+                    ProgressView()
+                    Spacer()
+                }
+                .padding(.top, 12)
+            }
+
+            // error
+            if let errorMessage {
+                Text(errorMessage)
+                    .foregroundStyle(.red)
+                    .font(.footnote)
+                    .padding(.horizontal)
+            }
+            
+            // forecast list
             if let forecast {
                 List {
                     Section("Daily Forecast") {
@@ -104,11 +144,7 @@ struct ForecastView: View {
         forecast = nil
         
         do {
-            let fetched = try await getForecast(lat: city.latitude, lon: city.longitude)
-            forecast = fetched
-        } catch OpenMeteoAPIError.decodeFailed {
-            print("Forecast decode failed for:", city.name)
-            errorMessage = "Couldn’t load forecast right now"
+            forecast = try await getForecast(lat: city.latitude, lon: city.longitude)
         } catch {
             print("Forecast failed:", error)
             errorMessage = "Couldn’t load forecast right now"
@@ -118,6 +154,7 @@ struct ForecastView: View {
     }
 }
 
+// safe indexing helper
 extension Array {
     subscript(safe index: Int) -> Element? {
         indices.contains(index) ? self[index] : nil
