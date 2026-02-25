@@ -160,14 +160,15 @@ struct ForecastView: View {
     }
     
     private func verdictCard(_ verdict: Verdict) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 Circle()
                     .fill(verdict.level.color)
-                    .frame(width: 12, height: 12)
+                    .frame(width: 14, height: 14)
 
                 Text(verdict.level.title)
-                    .font(.headline)
+                    .font(.title3)
+                    .fontWeight(.semibold)
 
                 Spacer()
             }
@@ -177,11 +178,18 @@ struct ForecastView: View {
                 .foregroundStyle(.secondary)
 
             Text(verdict.recommendation)
-                .font(.subheadline)
+                .font(.headline)
         }
-        .padding(12)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(.background)
+                .shadow(radius: 2, y: 1)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(.quaternary)
+        )
         .padding(.horizontal)
         .padding(.top, 4)
     }
@@ -226,12 +234,12 @@ struct ForecastView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             
-            // header
             Text("\(city.name), \(city.admin1 ?? city.country)")
                 .font(.title2)
                 .bold()
                 .padding(.horizontal)
-
+                .padding(.top, 8)
+            
             // loading spinner
             if isLoading {
                 HStack {
@@ -261,20 +269,39 @@ struct ForecastView: View {
                     windMph: forecast.daily.wind_speed_10m_max?[safe: i]
                 )
                 
-                verdictCard(todayVerdict)
-                
                 // forecast list
-                List {
-                    Section("Daily Forecast") {
-                        ForEach(forecast.daily.time.indices, id: \.self) { idx in
-                            forecastRow(
-                                dateText: prettyDate(forecast.daily.time[idx]),
-                                hi: forecast.daily.temperature_2m_max[idx],
-                                lo: forecast.daily.temperature_2m_min[idx],
-                                pop: forecast.daily.precipitation_probability_max?[safe: idx]
-                            )
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        
+                        verdictCard(todayVerdict)
+                            .padding(.top, 8)
+                        
+                        Text("Daily Forecast")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal)
+                        
+                        VStack(spacing: 0) {
+                            ForEach(forecast.daily.time.indices, id: \.self) { idx in
+                                forecastRow(
+                                    dateText: prettyDate(forecast.daily.time[idx]),
+                                    hi: forecast.daily.temperature_2m_max[idx],
+                                    lo: forecast.daily.temperature_2m_min[idx],
+                                    pop: forecast.daily.precipitation_probability_max?[safe: idx]
+                                )
+                                
+                                if idx != forecast.daily.time.indices.last {
+                                    Divider()
+                                }
+                            }
                         }
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color(.secondarySystemBackground))
+                        )
+                        .padding(.horizontal)
                     }
+                    .padding(.bottom, 16)
                 }
             } else {
                 Spacer()
@@ -282,6 +309,7 @@ struct ForecastView: View {
         }
         .navigationTitle("Forecast")
         .navigationBarTitleDisplayMode(.inline)
+        
         .task {
             await loadForecast()
         }
