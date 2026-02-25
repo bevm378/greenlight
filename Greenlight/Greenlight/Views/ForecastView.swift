@@ -225,7 +225,7 @@ struct ForecastView: View {
         .padding(.top, 4)
     }
     
-    // --- Rows ---
+    // --- rows ---
     
     private func forecastList(_ forecast: ForecastResponse) -> some View {
         VStack(spacing: 0) {

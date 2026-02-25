@@ -156,7 +156,6 @@ struct ContentView: View {
         } catch OpenMeteoAPIError.noResults {
             if Task.isCancelled { return }
             await MainActor.run {
-                // API decoded fine but results empty
                 cities = []
                 errorMessage = "No results"
                 isLoading = false
