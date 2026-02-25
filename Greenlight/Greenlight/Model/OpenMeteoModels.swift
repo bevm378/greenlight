@@ -7,7 +7,7 @@
 
 import Foundation
 
-// geocoding response wrapper (open-meteo returns { results: [...] } or sometimes no results)
+// geocoding response wrapper (open-meteo returns { results: [...] } or no results)
 struct GeocodingResponse: Hashable, Codable {
     let results: [City]?
 }
@@ -38,5 +38,9 @@ struct DailyForecast: Hashable, Codable {
     let time: [String]
     let temperature_2m_max: [Double]
     let temperature_2m_min: [Double]
+    let apparent_temperature_max: [Double]
+    let apparent_temperature_min: [Double]
     let precipitation_probability_max: [Int]?
+    let rain_sum: [Double]?
+    let wind_speed_10m_max: [Double]?
 }

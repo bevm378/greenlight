@@ -67,7 +67,27 @@ func getForecast(lat: Double, lon: Double) async throws -> ForecastResponse {
     components?.queryItems = [
         URLQueryItem(name: "latitude", value: String(lat)),
         URLQueryItem(name: "longitude", value: String(lon)),
-        URLQueryItem(name: "daily", value: "temperature_2m_max,temperature_2m_min,precipitation_probability_max"),
+        URLQueryItem(
+            name: "daily",
+            value: [
+                "temperature_2m_max",
+                "temperature_2m_min",
+                "apparent_temperature_max",
+                "apparent_temperature_min",
+                "precipitation_probability_max",
+                "rain_sum",
+                "wind_speed_10m_max"
+                // optional later:
+                // "wind_gusts_10m_max",
+                // "precipitation_hours"
+            ].joined(separator: ",")
+        ),
+
+        // freedom units 
+        URLQueryItem(name: "temperature_unit", value: "fahrenheit"),
+        URLQueryItem(name: "wind_speed_unit", value: "mph"),
+        URLQueryItem(name: "precipitation_unit", value: "inch"),
+
         URLQueryItem(name: "timezone", value: "auto")
     ]
 
@@ -83,3 +103,5 @@ func getForecast(lat: Double, lon: Double) async throws -> ForecastResponse {
         throw OpenMeteoAPIError.decodeFailed
     }
 }
+
+
