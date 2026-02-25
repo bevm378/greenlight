@@ -64,6 +64,9 @@ struct ContentView: View {
                         }
                     }
                 }
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
+                .background(Color(.systemGroupedBackground))
             }
             .navigationTitle("City Search")
         }
@@ -97,14 +100,16 @@ struct ContentView: View {
         }
     }
 
-    @MainActor
     private func runSearch(_ trimmed: String) async {
-        isLoading = true
-        errorMessage = nil
+        await MainActor.run {
+            isLoading = true
+            errorMessage = nil
+        }
 
         do {
             // ask API for candidates
             let results = try await searchCities(query: trimmed, count: 25)
+            if Task.isCancelled { return }
             
             // normalize the query once for comparisons
             let q = trimmed
@@ -117,47 +122,63 @@ struct ContentView: View {
             
             // filter to only cities whose name starts with what user typed
             // ex: "New York" should only show "New York..." and not "Florence"
-            var filtered = results.filter {city in
-                city.name.lowercased().hasPrefix(q)
+            let prefixFiltered = results.filter {
+                $0.name.lowercased().hasPrefix(q)
             }
-            
             // remove duplicates by city id
             var seen = Set<Int>()
-            filtered = filtered.filter { seen.insert($0.id).inserted }
-            
+            let deduped = prefixFiltered.filter {
+                seen.insert($0.id).inserted
+            }
+
             // sorting priority:
             // 1) exact name match first (ex: "New York" == "New York")
             // 2) higher population next (more likely what user means)
             // 3) alphabetical as tie-breaker
-            filtered.sort {
+            let filtered = deduped.sorted {
                 let aExact = $0.name.lowercased() == q
                 let bExact = $1.name.lowercased() == q
                 if aExact != bExact { return aExact && !bExact }
-                
+
                 let aPop = $0.population ?? -1
                 let bPop = $1.population ?? -1
                 if aPop != bPop { return aPop > bPop }
+
                 return $0.name < $1.name
-                
             }
             
-            cities = filtered
-            errorMessage = (cities.isEmpty && shouldShowNoResults) ? "No results" : nil
+            await MainActor.run {
+                cities = filtered
+                errorMessage = (cities.isEmpty && shouldShowNoResults) ? "No results" : nil
+                isLoading = false
+            }
             
         } catch OpenMeteoAPIError.noResults {
-            // API decoded fine but results empty
-            cities = []
-            errorMessage = "No results"
+            if Task.isCancelled { return }
+            await MainActor.run {
+                // API decoded fine but results empty
+                cities = []
+                errorMessage = "No results"
+                isLoading = false
+            }
+            
         } catch OpenMeteoAPIError.decodeFailed {
-            //don't scare users with this, log for me :)
-            cities = []
-            errorMessage = nil
             print("Decode failed for query:", trimmed)
+            if Task.isCancelled { return }
+            await MainActor.run {
+                cities = []
+                errorMessage = nil
+                isLoading = false
+            }
+            
         } catch {
-            // also log for me :D
-            cities = []
-            errorMessage = nil
+            if Task.isCancelled { return }
             print("Search failed:", error)
+            await MainActor.run {
+                cities = []
+                errorMessage = nil
+                isLoading = false
+            }
         }
 
         isLoading = false
