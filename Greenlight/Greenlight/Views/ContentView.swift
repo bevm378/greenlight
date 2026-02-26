@@ -10,14 +10,17 @@ import SwiftUI
 struct ContentView: View {
     
     // MARK: - Persistent Storage
+    
     @AppStorage("savedCity") private var savedCityData: String = ""
-    @AppStorage("favoriteCities") private var favoriteCitiesData: String = "[]"
+    @AppStorage("savedCities") private var savedCitiesData: String = "[]"
 
     // MARK: - Search State
+    
     @State private var query: String = ""
     @State private var cities: [City] = []
     
     // MARK: - UI State
+    
     @State private var isLoading = false
     @State private var errorMessage: String? = nil
 
@@ -25,22 +28,21 @@ struct ContentView: View {
     @State private var searchTask: Task<Void, Never>? = nil
     
     // MARK: - Derived State
-    private var savedCity: City? { loadCity() }
-    private var favoriteCities: [City] {
-        guard let data = favoriteCitiesData.data(using: .utf8),
-              let decoded = try? JSONDecoder().decode([City].self, from: data)
-        else { return [] }
-        return decoded
-    }
+    
     private var trimmedQuery: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
     
+    private var lastCity: City? { loadLastCity() }
+    
+    private var savedCities: [City] { loadSavedCities() }
+    
     // MARK: - Body
+    
     var body: some View {
         NavigationStack {
             Group {
-                if let savedCity, trimmedQuery.isEmpty {
-                    ForecastView(city: savedCity) {
-                        clearSavedCityAndReturnToSearch()
+                if let lastCity, trimmedQuery.isEmpty {
+                    ForecastView(city: lastCity) {
+                        clearLastCityAndReturnToSearch()
                     }
                 } else { searchUI }
             }
@@ -48,6 +50,7 @@ struct ContentView: View {
     }
 
     // MARK: - Search UI
+    
     private var searchUI: some View {
             VStack(alignment: .leading, spacing: 12) {
                 // header
@@ -82,21 +85,20 @@ struct ContentView: View {
                 
                 List {
                     // favorites list (only when user has favorites)
-                    if !favoriteCities.isEmpty {
-                        Section("Favorites") {
-                            ForEach(favoriteCities, id: \.id) { city in
+                    if !savedCities.isEmpty {
+                        Section("Saved Cities") {
+                            ForEach(savedCities, id: \.id) { city in
                                 NavigationLink {
                                     ForecastView(city: city, onChangeCity: nil)
                                 } label: {
                                     cityRow(city)
                                 }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button {
-                                        toggleFavorite(city)
+                                    Button(role: .destructive) {
+                                        removeSavedCity(city)
                                     } label: {
-                                        Label("Unfavorite", systemImage: "bookmark.fill")
+                                        Label("Remove", systemImage: "pin.slash")
                                     }
-                                    .tint(.accentColor)
                                 }
                             }
                         }
@@ -110,15 +112,6 @@ struct ContentView: View {
                                     ForecastView(city: city, onChangeCity: nil)
                                 } label: {
                                     cityRow(city)
-                                }
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    Button {
-                                        toggleFavorite(city)
-                                    } label: {
-                                        Label(isFavorite(city) ? "UnFavorite" : "Favorite",
-                                              systemImage: isFavorite(city) ? "bookmark.fill" : "bookmark")
-                                    }
-                                    .tint(.accentColor)
                                 }
                             }
                         }
@@ -134,7 +127,8 @@ struct ContentView: View {
             }
         }
     
-    // row used in favorites + results lists
+    // MARK: - Row UI
+    
     @ViewBuilder
     private func cityRow(_ city: City) -> some View {
         HStack(spacing: 10) {
@@ -152,53 +146,16 @@ struct ContentView: View {
         .contentShape(Rectangle())
     }
         
-    // MARK: - Persistence
-    private func loadCity() -> City? {
+    // MARK: - Persistence (Last City)
+    
+    private func loadLastCity() -> City? {
         guard let data = savedCityData.data(using: .utf8),
-              let city = try? JSONDecoder().decode(City.self, from: data)
+              let decoded = try? JSONDecoder().decode(City.self, from: data)
         else { return nil }
-        return city
+        return decoded
     }
     
-    private func saveCity(_ city: City) {
-        guard let data = try? JSONEncoder().encode(city),
-              let string = String(data: data, encoding: .utf8)
-        else { return }
-        savedCityData = string
-    }
-    
-    private func isFavorite(_ city: City) -> Bool {
-        favoriteCities.contains(where: { $0.id == city.id })
-    }
-    
-    private func saveFavoriteCities(_ cities: [City]) {
-        guard let data = try? JSONEncoder().encode(cities),
-              let string = String(data: data, encoding: .utf8)
-        else { return }
-        favoriteCitiesData = string
-    }
-
-    private func toggleFavorite(_ city: City) {
-        var updated = favoriteCities
-
-        if let idx = updated.firstIndex(where: { $0.id == city.id }) {
-            updated.remove(at: idx)
-        } else {
-            updated.append(city)
-        }
-        
-        // sort favorites by population desc, then name
-        updated.sort {
-            let aPop = $0.population ?? -1
-            let bPop = $1.population ?? -1
-            if aPop != bPop { return aPop > bPop }
-            return $0.name < $1.name
-        }
-
-        saveFavoriteCities(updated)
-    }
-    
-    private func clearSavedCityAndReturnToSearch() {
+    private func clearLastCityAndReturnToSearch() {
         savedCityData = ""
         query = ""
         cities = []
@@ -206,7 +163,30 @@ struct ContentView: View {
         isLoading = false
     }
     
+    // MARK: - Persistence (Saved Cities List)
+    
+    private func loadSavedCities() -> [City] {
+        guard let data = savedCitiesData.data(using: .utf8),
+              let decoded = try? JSONDecoder().decode([City].self, from: data)
+        else { return [] }
+        return decoded
+    }
+
+    private func saveSavedCities(_ cities: [City]) {
+        guard let data = try? JSONEncoder().encode(cities),
+              let string = String(data: data, encoding: .utf8)
+        else { return }
+        savedCitiesData = string
+    }
+    
+    private func removeSavedCity(_ city: City) {
+        var updated = loadSavedCities()
+        updated.removeAll { $0.id == city.id }
+        saveSavedCities(updated)
+    }
+    
     // MARK: - Search Logic
+    
     private func scheduleSearch(_ raw: String) {
         searchTask?.cancel()
 

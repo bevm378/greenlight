@@ -8,11 +8,19 @@
 import SwiftUI
 
 struct ForecastView: View {
+    
     // MARK: - Inputs
+    
     let city: City
     let onChangeCity: (() -> Void)?
     
+    // MARK: - Persistent Storage
+    
+    @AppStorage("savedCity") private var savedCityData: String = ""
+    @AppStorage("savedCities") private var savedCitiesData: String = "[]"
+    
     // MARK: - UI State
+    
     @State private var isLoading = false
     @State private var forecast: ForecastResponse? = nil
     @State private var errorMessage: String? = nil
@@ -37,6 +45,7 @@ struct ForecastView: View {
     }()
     
     // MARK: - Verdict Types
+    
     private enum VerdictLevel {
         case green, yellow, red
         
@@ -64,6 +73,19 @@ struct ForecastView: View {
         let windLine: String
         let whyLine: String
         let recommendation: String
+    }
+    
+    // MARK: - Derived State (Saved Cities)
+    
+    private var savedCities: [City] {
+        guard let data = savedCitiesData.data(using: .utf8),
+              let decoded = try? JSONDecoder().decode([City].self, from: data)
+        else { return [] }
+        return decoded
+    }
+
+    private var isSavedCity: Bool {
+        savedCities.contains(where: { $0.id == city.id })
     }
     
     // MARK: - Body
@@ -115,14 +137,32 @@ struct ForecastView: View {
         .navigationTitle("\(city.name), \(city.admin1 ?? city.country)")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            
+            // left: change city
             if let onChangeCity {
-                Button("Change city") { onChangeCity() }
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Change city") { onChangeCity() }
+                }
+            }
+            
+            // right: save/unsave city (pin)
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    if !isSavedCity { saveLastCity(city) }
+                    toggleSavedCity(city)
+                } label: {
+                    Image(systemName: isSavedCity ? "pin.fill" : "pin")
+                        .imageScale(.medium)
+                }
+                .tint(.accentColor)
+                .accessibilityLabel(isSavedCity ? "Remove saved city" : "Save city")
             }
         }
         .task { await loadForecast() }
     }
     
     // MARK: - Networking
+    
     @MainActor
     private func loadForecast() async {
         isLoading = true
@@ -140,9 +180,40 @@ struct ForecastView: View {
         isLoading = false
     }
     
+    // MARK: - Saved Cities Actions
+    
+    private func toggleSavedCity(_ city: City) {
+        var updated = savedCities
+        
+        if let idx = updated.firstIndex(where: { $0.id == city.id }) {
+            updated.remove(at: idx)
+        } else {
+            updated.append(city)
+        }
+        
+        // sort: population desc, then name
+        updated.sort {
+            let aPop = $0.population ?? -1
+            let bPop = $1.population ?? -1
+            if aPop != bPop { return aPop > bPop }
+            return $0.name < $1.name
+        }
+        
+        guard let data = try? JSONEncoder().encode(updated),
+              let string = String(data: data, encoding: .utf8)
+        else { return }
+        savedCitiesData = string
+    }
+
+    private func saveLastCity(_ city: City) {
+        guard let data = try? JSONEncoder().encode(city),
+              let string = String(data: data, encoding: .utf8)
+        else { return }
+        savedCityData = string
+    }
+    
     // MARK: - Verdict Logic
     
-    // convert forecast numbers into the verdict text shown in the verdict card
     private func makeVerdict(
         feelsLikeHighF: Double?,
         feelsLikeLowF: Double?,
@@ -179,7 +250,7 @@ struct ForecastView: View {
             return .green
         }()
         
-        // detail lines shown in verdict card
+        // verdict card lines
         let feelsLikeLine: String = {
             if let hi, let lo { return "Feels like \(Int(lo.rounded())) – \(Int(hi.rounded()))°F" }
             if let hi { return "Feels like ~\(Int(hi.rounded()))°F" }
@@ -230,6 +301,7 @@ struct ForecastView: View {
     }
     
     // MARK: - UI Helpers
+    
     private func prettyDate(_ apiDate: String) -> String {
         guard let d = Self.apiDateFormatter.date(from: apiDate) else { return apiDate }
         return Self.displayDateFormatter.string(from: d)
@@ -355,6 +427,7 @@ struct ForecastView: View {
 }
 
 // MARK: - Safe Indexing
+
 extension Array {
     subscript(safe index: Int) -> Element? {
         indices.contains(index) ? self[index] : nil
