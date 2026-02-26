@@ -262,12 +262,12 @@ struct ForecastView: View {
         let whyLine: String = {
             switch level {
             case .green:
-                return "Ideal conditions"
+                return "Clear conditions"
             case .yellow:
                 if tempLevel == .yellow { return "Chilly" }
                 if rainLevel == .yellow { return "Light rain" }
                 if windLevel == .yellow { return "Breezy" }
-                return "Less-than-ideal conditions"
+                return "Mixed conditions"
             case .red:
                 if tempLevel == .red { return "Frigid" }
                 if rainLevel == .red { return "Heavy rain" }
@@ -279,12 +279,12 @@ struct ForecastView: View {
         let recommendation: String = {
             switch level {
             case .green:
-                return "It's great outside!"
+                return "It's looking good outside!"
             case .yellow:
-                if tempLevel == .yellow { return "It's fine outside, but add a warm layer" }
-                if rainLevel == .yellow { return "It's fine outside, but bring a rain layer" }
-                if windLevel == .yellow { return "It's fine outside, but stick to sheltered routes" }
-                return "It's fine outside, but keep plans flexible"
+                if tempLevel == .yellow { return "It's OK outside, but add a warm layer" }
+                if rainLevel == .yellow { return "It's OK outside, but bring a rain layer" }
+                if windLevel == .yellow { return "It's OK outside, but stick to sheltered routes" }
+                return "It's OK outside, but keep plans flexible"
             case .red:
                 return "It's better to stay indoors"
             }
