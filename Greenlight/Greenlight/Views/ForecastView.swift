@@ -43,7 +43,7 @@ struct ForecastView: View {
         var title: String {
             switch self {
             case .green: return "Go"
-            case .yellow: return "Yield"
+            case .yellow: return "Caution"
             case .red: return "Stop"
             }
         }
@@ -181,7 +181,7 @@ struct ForecastView: View {
         
         // detail lines shown in verdict card
         let feelsLikeLine: String = {
-            if let hi, let lo { return "Feels like \(Int(lo.rounded()))–\(Int(hi.rounded()))°F" }
+            if let hi, let lo { return "Feels like \(Int(lo.rounded())) – \(Int(hi.rounded()))°F" }
             if let hi { return "Feels like ~\(Int(hi.rounded()))°F" }
             return "Feels like unavailable"
         }()
@@ -208,14 +208,14 @@ struct ForecastView: View {
         let recommendation: String = {
             switch level {
             case .green:
-                return "Go outside. It's great day for a walk!"
+                return "It's great outside, so enjoy a nice walk!"
             case .yellow:
-                if tempLevel == .yellow { return "Go outside, but add a warm layer." }
-                if rainLevel == .yellow { return "Go outside, but bring a light rain layer." }
-                if windLevel == .yellow { return "Go outside, but stick to sheltered routes." }
-                return "Go outside, but keep plans flexible."
+                if tempLevel == .yellow { return "It's fine outside, but add a warm layer" }
+                if rainLevel == .yellow { return "It's fine outside, but bring a rain layer" }
+                if windLevel == .yellow { return "It's fine outside, but stick to sheltered routes" }
+                return "It's fine outside, but keep plans flexible"
             case .red:
-                return "Stay inside. Try an indoor workout."
+                return "It's better to stay indoors today"
             }
         }()
         
