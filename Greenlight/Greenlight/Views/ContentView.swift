@@ -11,6 +11,7 @@ struct ContentView: View {
     
     // MARK: - Persistent Storage
     @AppStorage("savedCity") private var savedCityData: String = ""
+    @AppStorage("favoriteCities") private var favoriteCitiesData: String = "[]"
 
     // MARK: - Search State
     @State private var query: String = ""
@@ -25,6 +26,12 @@ struct ContentView: View {
     
     // MARK: - Derived State
     private var savedCity: City? { loadCity() }
+    private var favoriteCities: [City] {
+        guard let data = favoriteCitiesData.data(using: .utf8),
+              let decoded = try? JSONDecoder().decode([City].self, from: data)
+        else { return [] }
+        return decoded
+    }
     private var trimmedQuery: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
     
     // MARK: - Body
@@ -43,6 +50,11 @@ struct ContentView: View {
     // MARK: - Search UI
     private var searchUI: some View {
             VStack(alignment: .leading, spacing: 12) {
+                // header
+                Text("Find a city, then get a go / caution / stop")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal)
                 
                 // search field
                 TextField("Search for a city", text: $query)
@@ -51,6 +63,7 @@ struct ContentView: View {
                     .padding(10)
                     .background(.ultraThinMaterial)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .padding(.top, 8)
                     .padding(.horizontal)
 
                 // loading spinner
@@ -65,16 +78,47 @@ struct ContentView: View {
                         .font(.footnote)
                         .padding(.horizontal)
                 }
-
-                // results list
+                
+                
                 List {
+                    // favorites list (only when user has favorites)
+                    if !favoriteCities.isEmpty {
+                        Section("Favorites") {
+                            ForEach(favoriteCities, id: \.id) { city in
+                                NavigationLink {
+                                    ForecastView(city: city, onChangeCity: nil)
+                                } label: {
+                                    cityRow(city)
+                                }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button {
+                                        toggleFavorite(city)
+                                    } label: {
+                                        Label("Unfavorite", systemImage: "bookmark.fill")
+                                    }
+                                    .tint(.accentColor)
+                                }
+                            }
+                        }
+                    }
+                    
+                    // results list (only when user typed something)
                     if !trimmedQuery.isEmpty {
                         Section("Results") {
                             ForEach(cities, id: \.id) { city in
                                 NavigationLink {
                                     ForecastView(city: city, onChangeCity: nil)
                                 } label: {
-                                    Text("\(city.name), \(city.admin1 ?? city.country), \(city.country_code ?? "")")
+                                    cityRow(city)
+                                }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button {
+                                        toggleFavorite(city)
+                                    } label: {
+                                        Label(isFavorite(city) ? "UnFavorite" : "Favorite",
+                                              systemImage: isFavorite(city) ? "bookmark.fill" : "bookmark")
+                                    }
+                                    .tint(.accentColor)
                                 }
                             }
                         }
@@ -89,6 +133,24 @@ struct ContentView: View {
                 scheduleSearch(newValue)
             }
         }
+    
+    // row used in favorites + results lists
+    @ViewBuilder
+    private func cityRow(_ city: City) -> some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(city.name), \(city.admin1 ?? city.country)")
+                    .lineLimit(1)
+
+                Text(city.country_code ?? city.country)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+        }
+        .contentShape(Rectangle())
+    }
         
     // MARK: - Persistence
     private func loadCity() -> City? {
@@ -103,6 +165,37 @@ struct ContentView: View {
               let string = String(data: data, encoding: .utf8)
         else { return }
         savedCityData = string
+    }
+    
+    private func isFavorite(_ city: City) -> Bool {
+        favoriteCities.contains(where: { $0.id == city.id })
+    }
+    
+    private func saveFavoriteCities(_ cities: [City]) {
+        guard let data = try? JSONEncoder().encode(cities),
+              let string = String(data: data, encoding: .utf8)
+        else { return }
+        favoriteCitiesData = string
+    }
+
+    private func toggleFavorite(_ city: City) {
+        var updated = favoriteCities
+
+        if let idx = updated.firstIndex(where: { $0.id == city.id }) {
+            updated.remove(at: idx)
+        } else {
+            updated.append(city)
+        }
+        
+        // sort favorites by population desc, then name
+        updated.sort {
+            let aPop = $0.population ?? -1
+            let bPop = $1.population ?? -1
+            if aPop != bPop { return aPop > bPop }
+            return $0.name < $1.name
+        }
+
+        saveFavoriteCities(updated)
     }
     
     private func clearSavedCityAndReturnToSearch() {

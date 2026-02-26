@@ -12,6 +12,7 @@ struct GreenlightApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .tint(.accentColor)
         }
     }
 }

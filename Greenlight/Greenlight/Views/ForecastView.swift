@@ -208,14 +208,14 @@ struct ForecastView: View {
         let recommendation: String = {
             switch level {
             case .green:
-                return "It's great outside, so enjoy a nice walk!"
+                return "It's great outside!"
             case .yellow:
                 if tempLevel == .yellow { return "It's fine outside, but add a warm layer" }
                 if rainLevel == .yellow { return "It's fine outside, but bring a rain layer" }
                 if windLevel == .yellow { return "It's fine outside, but stick to sheltered routes" }
                 return "It's fine outside, but keep plans flexible"
             case .red:
-                return "It's better to stay indoors today"
+                return "It's better to stay indoors"
             }
         }()
         
