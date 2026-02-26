@@ -7,12 +7,14 @@
 
 import Foundation
 
-// geocoding response wrapper (open-meteo returns { results: [...] } or no results)
+// MARK: - Geocoding
+
+// Open-Meteo geocoding returns `{ "results": [...] }` or no results
 struct GeocodingResponse: Hashable, Codable {
     let results: [City]?
 }
 
-// one city result from geocoding search
+// one matching city from geocoding search
 struct City: Hashable, Codable {
     let id: Int
     let name: String
@@ -20,10 +22,13 @@ struct City: Hashable, Codable {
     let longitude: Double
     let country: String
     let country_code: String?
-    let admin1: String?         // state/region
+    let admin1: String?      // state/region
     let population: Int?
     let timezone: String?
 }
+
+
+// MARK: - Forecast
 
 // forecast response wrapper
 struct ForecastResponse: Hashable, Codable {
@@ -33,7 +38,7 @@ struct ForecastResponse: Hashable, Codable {
     let daily: DailyForecast
 }
 
-// "daily" portion requested in API call
+// daily values requested in forecast API call
 struct DailyForecast: Hashable, Codable {
     let time: [String]
     let temperature_2m_max: [Double]

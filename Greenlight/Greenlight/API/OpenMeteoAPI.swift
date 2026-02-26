@@ -7,28 +7,28 @@
 
 import Foundation
 
-// base URLs
+// MARK: - Endpoints (Open-Meteo)
 let OpenMeteoAPI_root = "https://api.open-meteo.com/v1"
 let OpenMeteoAPI_endpoint = "\(OpenMeteoAPI_root)/forecast"
 
 let OpenMeteoGeocoding_root = "https://geocoding-api.open-meteo.com/v1"
 let OpenMeteoGeocoding_endpoint = "\(OpenMeteoGeocoding_root)/search"
 
-// errors thrown from API layer
+// MARK: - API Errors
 enum OpenMeteoAPIError: Error {
-    case noResults              // decoded fine but results empty
-    case decodeFailed           // response couldn't be decoded into models
-    case unexpectedAPIError     // network/server error
+    case noResults              // decoded fine, but no city matches
+    case decodeFailed           // data came back, but didn't match models
+    case unexpectedAPIError     // something else went wrong (bad URL, network, etc.)
 }
 
-// CITY SEARCH: turn a city name into a list of matching cities
+// MARK: - City Search (name -> matching cities)
 func searchCities(query: String, count: Int = 10) async throws -> [City] {
     
     // normalize user input
     let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
     if trimmed.isEmpty { return [] }
 
-    // build URL like:
+    // example:
     // https://geocoding-api.open-meteo.com/v1/search?name=...&count=...&language=en&format=json
     var components = URLComponents(string: OpenMeteoGeocoding_endpoint)
     components?.queryItems = [
@@ -38,35 +38,34 @@ func searchCities(query: String, count: Int = 10) async throws -> [City] {
         URLQueryItem(name: "format", value: "json")
     ]
 
-    // if URLComponents fails, programmer error
     guard let url = components?.url else {
-        fatalError("URL didn't work :p... Check URLComponents/queryItems")
-    }
-
-    // make the request
-    let (data, _) = try await URLSession.shared.data(from: url)
-
-    // try decoding into our expected response type
-    if let decoded = try? JSONDecoder().decode(GeocodingResponse.self, from: data) {
-        let results = decoded.results ?? []
-        if results.isEmpty { throw OpenMeteoAPIError.noResults }
-        return results
-    } else {
-        
-        // decoding failed
         throw OpenMeteoAPIError.decodeFailed
     }
+
+    // make request
+    let (data, _) = try await URLSession.shared.data(from: url)
+
+    // try decoding into response wrapper
+    guard let decoded = try? JSONDecoder().decode(GeocodingResponse.self, from: data) else {
+        throw OpenMeteoAPIError.decodeFailed
+    }
+    
+    let results = decoded.results ?? []
+    if results.isEmpty { throw OpenMeteoAPIError.noResults }
+    return results
 }
 
-// FORECAST: turn lat/lon into daily forecast data
+// MARK: - Forecast (lat/lon -> daily forecast)
 func getForecast(lat: Double, lon: Double) async throws -> ForecastResponse {
     
-    // build URL like:
+    // example:
     // https://api.open-meteo.com/v1/forecast?latitude=...&longitude=...&daily=...&timezone=auto
     var components = URLComponents(string: OpenMeteoAPI_endpoint)
     components?.queryItems = [
         URLQueryItem(name: "latitude", value: String(lat)),
         URLQueryItem(name: "longitude", value: String(lon)),
+        
+        // daily fields wanted
         URLQueryItem(
             name: "daily",
             value: [
@@ -77,31 +76,27 @@ func getForecast(lat: Double, lon: Double) async throws -> ForecastResponse {
                 "precipitation_probability_max",
                 "rain_sum",
                 "wind_speed_10m_max"
-                // optional later:
-                // "wind_gusts_10m_max",
-                // "precipitation_hours"
             ].joined(separator: ",")
         ),
 
-        // freedom units 
+        // units
         URLQueryItem(name: "temperature_unit", value: "fahrenheit"),
         URLQueryItem(name: "wind_speed_unit", value: "mph"),
         URLQueryItem(name: "precipitation_unit", value: "inch"),
 
+        // use local timezone for chosen location
         URLQueryItem(name: "timezone", value: "auto")
     ]
 
     guard let url = components?.url else {
-        fatalError("URL didn't work :p... Check URLComponents/queryItems")
+        throw OpenMeteoAPIError.unexpectedAPIError
     }
 
     let (data, _) = try await URLSession.shared.data(from: url)
 
-    if let decoded = try? JSONDecoder().decode(ForecastResponse.self, from: data) {
-        return decoded
-    } else {
+    guard let decoded = try? JSONDecoder().decode(ForecastResponse.self, from: data) else {
         throw OpenMeteoAPIError.decodeFailed
     }
+    
+    return decoded
 }
-
-

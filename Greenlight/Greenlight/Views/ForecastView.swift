@@ -8,12 +8,16 @@
 import SwiftUI
 
 struct ForecastView: View {
+    // MARK: - Inputs
     let city: City
+    let onChangeCity: (() -> Void)?
     
-    // UI state
+    // MARK: - UI State
     @State private var isLoading = false
     @State private var forecast: ForecastResponse? = nil
     @State private var errorMessage: String? = nil
+    
+    // MARK: - Date Formatting
     
     // parse API dates like "2026-02-19"
     private static let apiDateFormatter: DateFormatter = {
@@ -32,33 +36,18 @@ struct ForecastView: View {
         return df
     }()
     
-    // nice date string
-    private func prettyDate(_ apiDate: String) -> String {
-        guard let d = Self.apiDateFormatter.date(from: apiDate) else { return apiDate }
-        return Self.displayDateFormatter.string(from: d)
-    }
-    
-    // format temps like " 5°" or "10°"
-    private func tempString(_ value: Double) -> String {
-        String(format: "%2d°", Int(value.rounded()))
-    }
-    
-    // format POP like " 10%" or "100%"
-    private func popString(_ value: Int) -> String {
-        String(format: "%3d%%", value)
-    }
-    
-    // --- verdict ---
-    
+    // MARK: - Verdict Types
     private enum VerdictLevel {
         case green, yellow, red
+        
         var title: String {
             switch self {
-            case .green: return "Good to go outside"
-            case .yellow: return "OK to go outside"
-            case .red: return "Not advised to go outside"
+            case .green: return "Go"
+            case .yellow: return "Yield"
+            case .red: return "Stop"
             }
         }
+        
         var color: Color {
             switch self {
             case .green: return .green
@@ -77,17 +66,83 @@ struct ForecastView: View {
         let recommendation: String
     }
     
-    private func labelRow(system: String, text: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Image(systemName: system)
-                .imageScale(.medium)
-                .frame(width: 22, alignment: .leading)
-                .foregroundStyle(.secondary)
-            Text(text)
-                .fixedSize(horizontal: false, vertical: true)
+    // MARK: - Body
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+
+                // loading state
+                if isLoading {
+                    HStack { Spacer(); ProgressView(); Spacer() }
+                        .padding(.top, 12)
+                }
+                
+                // error state
+                if let errorMessage {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                        .font(.footnote)
+                        .padding(.horizontal)
+                }
+
+                // loaded state
+                if let forecast {
+                    let i = 0
+                    let todayVerdict = makeVerdict(
+                        feelsLikeHighF: forecast.daily.apparent_temperature_max[safe: i],
+                        feelsLikeLowF: forecast.daily.apparent_temperature_min[safe: i],
+                        popMax: forecast.daily.precipitation_probability_max?[safe: i],
+                        rainInches: forecast.daily.rain_sum?[safe: i],
+                        windMph: forecast.daily.wind_speed_10m_max?[safe: i]
+                    )
+
+                    verdictCard(todayVerdict)
+                        .padding(.top, 8)
+
+                    Text("Daily Forecast")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal)
+                        .padding(.top, 4)
+
+                    forecastList(forecast)
+                        .padding(.horizontal)
+                }
+            }
+            .padding(.bottom, 16)
         }
+        .background(Color(.systemGroupedBackground))
+        .navigationTitle("\(city.name), \(city.admin1 ?? city.country)")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if let onChangeCity {
+                Button("Change city") { onChangeCity() }
+            }
+        }
+        .task { await loadForecast() }
     }
     
+    // MARK: - Networking
+    @MainActor
+    private func loadForecast() async {
+        isLoading = true
+        forecast = nil
+        errorMessage = nil
+        
+        do {
+            forecast = try await getForecast(lat: city.latitude, lon: city.longitude)
+        } catch {
+            print("Forecast failed:", error)
+            forecast = nil
+            errorMessage = "Couldn’t load forecast right now."
+        }
+        
+        isLoading = false
+    }
+    
+    // MARK: - Verdict Logic
+    
+    // convert forecast numbers into the verdict text shown in the verdict card
     private func makeVerdict(
         feelsLikeHighF: Double?,
         feelsLikeLowF: Double?,
@@ -96,7 +151,6 @@ struct ForecastView: View {
         windMph: Double?
     ) -> Verdict {
         
-        // main temperature number
         let hi = feelsLikeHighF
         let lo = feelsLikeLowF
         
@@ -118,53 +172,50 @@ struct ForecastView: View {
         if let wind = windMph, wind >= 25 { windLevel = .red }
         else if let wind = windMph, wind >= 15 { windLevel = .yellow }
         
-        // any red -> red, else any yellow -> yellow, else green
+        // overall verdict: any red -> red; else any yellow -> yellow; else green
         let level: VerdictLevel = {
             if tempLevel == .red || rainLevel == .red || windLevel == .red { return .red }
             if tempLevel == .yellow || rainLevel == .yellow || windLevel == .yellow { return .yellow }
             return .green
         }()
         
-        // verdict string
+        // detail lines shown in verdict card
         let feelsLikeLine: String = {
             if let hi, let lo { return "Feels like \(Int(lo.rounded()))–\(Int(hi.rounded()))°F" }
             if let hi { return "Feels like ~\(Int(hi.rounded()))°F" }
-            return "Feels like --"
+            return "Feels like unavailable"
         }()
-
-        let rainLine = popMax.map { "Precipitation \($0)%" } ?? "Precipitation --"
-        let windLine = windMph.map { "Wind \(Int($0.rounded())) mph" } ?? "Wind --"
-
+        
+        let rainLine = popMax.map { "Precipitation \($0)%" } ?? "Precipitation unavailable"
+        let windLine = windMph.map { "Wind \(Int($0.rounded())) mph" } ?? "Wind unavailable"
         let whyLine: String = {
             switch level {
             case .green:
-                return "Conditions are favorable for outdoor activity"
+                return "Ideal conditions"
             case .yellow:
-                if tempLevel == .yellow { return "Cooler temperatures" }
+                if tempLevel == .yellow { return "Chilly" }
                 if rainLevel == .yellow { return "Light rain" }
-                if windLevel == .yellow { return "Gentle breeze" }
-                return "One or more conditions may affect outdoor activity"
+                if windLevel == .yellow { return "Breezy" }
+                return "Less-than-ideal conditions"
             case .red:
-                if tempLevel == .red { return "Low temperatures" }
+                if tempLevel == .red { return "Frigid" }
                 if rainLevel == .red { return "Heavy rain" }
-                if windLevel == .red { return "Strong wind" }
-                return "Conditions are unfavorable for outdoor activity"
+                if windLevel == .red { return "Windy" }
+                return "Harsh conditions"
             }
         }()
-                
-        // recommedation
+        
         let recommendation: String = {
             switch level {
             case .green:
-                return "..."
+                return "Go outside. It's great day for a walk!"
             case .yellow:
-                // recommendation based on which caution triggered most
-                if tempLevel == .yellow { return "..." }
-                if rainLevel == .yellow { return "..." }
-                if windLevel == .yellow { return "..." }
-                return "..."
+                if tempLevel == .yellow { return "Go outside, but add a warm layer." }
+                if rainLevel == .yellow { return "Go outside, but bring a light rain layer." }
+                if windLevel == .yellow { return "Go outside, but stick to sheltered routes." }
+                return "Go outside, but keep plans flexible."
             case .red:
-                return "..."
+                return "Stay inside. Try an indoor workout."
             }
         }()
         
@@ -178,6 +229,24 @@ struct ForecastView: View {
         )
     }
     
+    // MARK: - UI Helpers
+    private func prettyDate(_ apiDate: String) -> String {
+        guard let d = Self.apiDateFormatter.date(from: apiDate) else { return apiDate }
+        return Self.displayDateFormatter.string(from: d)
+    }
+    
+    private func labelRow(system: String, text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: system)
+                .imageScale(.medium)
+                .frame(width: 22, alignment: .leading)
+                .foregroundStyle(.secondary)
+            
+            Text(text)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+    
     private func verdictCard(_ verdict: Verdict) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
@@ -189,7 +258,6 @@ struct ForecastView: View {
                     .font(.title3)
                     .fontWeight(.semibold)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.85)
 
                 Spacer()
             }
@@ -205,7 +273,6 @@ struct ForecastView: View {
 
             Text(verdict.recommendation)
                 .font(.headline)
-                //.foregroundStyle(.primary)
                 .padding(.top, 2)
         }
         .padding(14)
@@ -224,8 +291,6 @@ struct ForecastView: View {
         .padding(.horizontal)
         .padding(.top, 4)
     }
-    
-    // --- rows ---
     
     private func forecastList(_ forecast: ForecastResponse) -> some View {
         VStack(spacing: 0) {
@@ -258,20 +323,20 @@ struct ForecastView: View {
     private func forecastRow(dateText: String, hi: Double, lo: Double, pop: Int?) -> some View {
         Grid(horizontalSpacing: 12, verticalSpacing: 0) {
             GridRow {
-                //left: date
+                // date
                 Text(dateText)
                     .lineLimit(1)
                     .frame(minWidth: 120, alignment: .leading)
                     .gridColumnAlignment(.leading)
                                 
-                // middle: temperatures
+                // high / low
                 Text("H \(Int(hi.rounded()))°  L \(Int(lo.rounded()))°")
                     .font(.body.monospacedDigit())
                     .lineLimit(1)
                     .frame(width: 120, alignment: .leading)
                     .gridColumnAlignment(.leading)
                 
-                // right: precipitation
+                // precipitation %
                 HStack(spacing: 6) {
                     Image(systemName: "umbrella.fill")
                         .font(.caption)
@@ -286,75 +351,10 @@ struct ForecastView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .contentShape(Rectangle())
-    }
-
-    // --- UI ---
-    
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-
-                if isLoading {
-                    HStack { Spacer(); ProgressView(); Spacer() }
-                        .padding(.top, 12)
-                }
-
-                if let errorMessage {
-                    Text(errorMessage)
-                        .foregroundStyle(.red)
-                        .font(.footnote)
-                        .padding(.horizontal)
-                }
-
-                if let forecast {
-                    let i = 0
-                    let todayVerdict = makeVerdict(
-                        feelsLikeHighF: forecast.daily.apparent_temperature_max[safe: i],
-                        feelsLikeLowF: forecast.daily.apparent_temperature_min[safe: i],
-                        popMax: forecast.daily.precipitation_probability_max?[safe: i],
-                        rainInches: forecast.daily.rain_sum?[safe: i],
-                        windMph: forecast.daily.wind_speed_10m_max?[safe: i]
-                    )
-
-                    verdictCard(todayVerdict)
-                        .padding(.top, 8)
-
-                    Text("Daily Forecast")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal)
-                        .padding(.top, 4)
-
-                    forecastList(forecast)
-                        .padding(.horizontal)
-                }
-            }
-            .padding(.bottom, 16)
-        }
-        .background(Color(.systemGroupedBackground))
-        .navigationTitle("\(city.name), \(city.admin1 ?? city.country)")
-        .navigationBarTitleDisplayMode(.inline)
-        .task { await loadForecast() }
-    }
-    
-    @MainActor
-    private func loadForecast() async {
-        isLoading = true
-        errorMessage = nil
-        forecast = nil
-        
-        do {
-            forecast = try await getForecast(lat: city.latitude, lon: city.longitude)
-        } catch {
-            print("Forecast failed:", error)
-            errorMessage = "Couldn’t load forecast right now"
-        }
-        
-        isLoading = false
-    }
+    }    
 }
 
-// safe indexing helper
+// MARK: - Safe Indexing
 extension Array {
     subscript(safe index: Int) -> Element? {
         indices.contains(index) ? self[index] : nil
@@ -372,5 +372,5 @@ extension Array {
         admin1: "New Jersey",
         population: nil,
         timezone: nil
-    ))
+    ), onChangeCity: nil)
 }
