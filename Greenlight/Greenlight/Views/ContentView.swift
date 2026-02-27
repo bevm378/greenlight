@@ -58,17 +58,29 @@ struct ContentView: View {
             
             VStack(alignment: .leading, spacing: 12) {
                 // header
-                Text("Find a city, then get a go / caution / stop")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal)
-                
+                HStack {
+                    Text("Find a city, then get a ")
+                        .foregroundStyle(.secondary)
+                    + Text("go")
+                        .foregroundStyle(.green)
+                    + Text(" / ")
+                        .foregroundStyle(.secondary)
+                    + Text("caution")
+                        .foregroundStyle(Color.orange.opacity(0.75))
+                    + Text(" / ")
+                        .foregroundStyle(.secondary)
+                    + Text("stop")
+                        .foregroundStyle(.red)
+                }
+                .font(.subheadline)
+                .padding(.horizontal)
+
                 // search field
                 TextField("Search for a city", text: $query)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .padding(10)
-                    .background(Color(.systemBackground))
+                    .background(Color(.tertiarySystemFill))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
