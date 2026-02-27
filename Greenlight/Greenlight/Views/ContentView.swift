@@ -106,7 +106,7 @@ struct ContentView: View {
                 List {
                     // favorites list (only when user has favorites)
                     if !savedCities.isEmpty {
-                        Section("Saved Cities") {
+                        Section(header: Text("Saved Cities")) {
                             ForEach(savedCities, id: \.id) { city in
                                 NavigationLink {
                                     ForecastView(city: city, onChangeCity: nil)
@@ -122,6 +122,7 @@ struct ContentView: View {
                                 }
                             }
                         }
+                        .textCase(nil)
                     }
                     
                     // results list (only when user typed something)
