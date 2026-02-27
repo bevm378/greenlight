@@ -71,6 +71,9 @@ struct ForecastView: View {
         let feelsLikeLine: String
         let whyLine: String
         let recommendation: String
+        let tempLevel: VerdictLevel?
+        let rainLevel: VerdictLevel?
+        let windLevel: VerdictLevel?
     }
     
     // MARK: - Derived State (Saved Cities)
@@ -81,7 +84,7 @@ struct ForecastView: View {
         else { return [] }
         return decoded
     }
-
+    
     private var isSavedCity: Bool {
         savedCities.contains(where: { $0.id == city.id })
     }
@@ -91,7 +94,7 @@ struct ForecastView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-
+                
                 // loading state
                 if isLoading {
                     HStack { Spacer(); ProgressView(); Spacer() }
@@ -105,7 +108,7 @@ struct ForecastView: View {
                         .font(.footnote)
                         .padding(.horizontal)
                 }
-
+                
                 // loaded state
                 if let forecast {
                     let i = 0
@@ -125,7 +128,7 @@ struct ForecastView: View {
                         rainInches: rain,
                         windMph: wind
                     )
-
+                    
                     verdictCard(
                         todayVerdict,
                         high: hi,
@@ -135,13 +138,13 @@ struct ForecastView: View {
                         updatedText: nil
                     )
                     .padding(.top, 8)
-
+                    
                     Text("Daily Forecast")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal)
                         .padding(.top, 4)
-
+                    
                     forecastList(forecast)
                         .padding(.horizontal)
                 }
@@ -219,7 +222,7 @@ struct ForecastView: View {
         else { return }
         savedCitiesData = string
     }
-
+    
     private func saveLastCity(_ city: City) {
         guard let data = try? JSONEncoder().encode(city),
               let string = String(data: data, encoding: .utf8)
@@ -266,8 +269,8 @@ struct ForecastView: View {
         
         // verdict card lines
         let feelsLikeLine: String = {
-            if let hi = feelsLikeHighF, let lo = feelsLikeLowF { return "Feels like \(Int(lo.rounded())) – \(Int(hi.rounded()))°F" }
-            if let hi = feelsLikeHighF { return "Feels like ~\(Int(hi.rounded()))°F" }
+            if let hi = feelsLikeHighF, let lo = feelsLikeLowF { return "Feels like \(Int(hi.rounded()))°  /  \(Int(lo.rounded()))°" }
+            if let hi = feelsLikeHighF { return "Feels like ~\(Int(hi.rounded()))°" }
             return "Feels like --"
         }()
         
@@ -306,18 +309,15 @@ struct ForecastView: View {
             level: level,
             feelsLikeLine: feelsLikeLine,
             whyLine: whyLine,
-            recommendation: recommendation
+            recommendation: recommendation,
+            tempLevel: tempLevel,
+            rainLevel: rainLevel,
+            windLevel: windLevel
         )
     }
     
-    // MARK: - UI Helper
-    private func prettyDate(_ apiDate: String) -> String {
-        guard let d = Self.apiDateFormatter.date(from: apiDate) else { return apiDate }
-        return Self.displayDateFormatter.string(from: d)
-    }
-    
     // MARK: - Verdict Card
-            
+    
     private func verdictCard(
         _ verdict: Verdict,
         high: Double?,
@@ -326,8 +326,8 @@ struct ForecastView: View {
         windMph: Double?,
         updatedText: String?
     ) -> some View {
-
-        CardContainer(tint: verdict.level.color) {
+        
+        CardContainer(tint: nil) {
             VStack(alignment: .leading, spacing: 10) {
                 
                 // header
@@ -339,24 +339,28 @@ struct ForecastView: View {
                         .font(.title2.weight(.semibold))
                     Spacer()
                 }
-
+                
                 // feels-like line
                 Text(verdict.feelsLikeLine)
                     .foregroundStyle(.secondary)
-
+                
                 // metrics
                 Grid(horizontalSpacing: 12, verticalSpacing: 12) {
                     GridRow {
-                        MetricChip("High", high.map { "\(Int($0.rounded()))°" } ?? "--")
-                        MetricChip("Low", low.map { "\(Int($0.rounded()))°" } ?? "--")
+                        MetricChip("High", high.map { "\(Int($0.rounded()))°" } ?? "--",
+                                   tint: chipTint(for: verdict.tempLevel))
+                        MetricChip("Low", low.map { "\(Int($0.rounded()))°" } ?? "--",
+                                   tint: chipTint(for: verdict.tempLevel))
                     }
                     GridRow {
-                        MetricChip("Precip", popMax.map { "\($0)%" } ?? "--")
-                        MetricChip("Wind", windMph.map { "\(Int($0.rounded())) mph" } ?? "--")
+                        MetricChip("Precip", popMax.map { "\($0)%" } ?? "--",
+                                   tint: chipTint(for: verdict.rainLevel))
+                        MetricChip("Wind", windMph.map { "\(Int($0.rounded())) mph" } ?? "--",
+                                   tint: chipTint(for: verdict.windLevel))
                     }
                 }
                 .padding(.top, 2)
-
+                
                 // why + recommendation lines
                 VStack(alignment: .leading, spacing: 4) {
                     Text(verdict.whyLine)
@@ -364,7 +368,7 @@ struct ForecastView: View {
                     Text(verdict.recommendation)
                         .font(.headline)
                 }
-
+                
                 // "updated" footer
                 if let updatedText {
                     Divider().opacity(0.5)
@@ -381,12 +385,14 @@ struct ForecastView: View {
         .padding(.horizontal)
     }
     
+    // MARK: - Forecast
+    
     private func forecastList(_ forecast: ForecastResponse) -> some View {
         
         let dayCount = min(
-                forecast.daily.time.count,
-                forecast.daily.temperature_2m_max.count,
-                forecast.daily.temperature_2m_min.count
+            forecast.daily.time.count,
+            forecast.daily.temperature_2m_max.count,
+            forecast.daily.temperature_2m_min.count
         )
         
         return VStack(spacing: 0) {
@@ -437,7 +443,7 @@ struct ForecastView: View {
                     .lineLimit(1)
                     .frame(minWidth: 120, alignment: .leading)
                     .gridColumnAlignment(.leading)
-                                
+                
                 // high / low
                 Text("H \(Int(hi.rounded()))°  L \(Int(lo.rounded()))°")
                     .font(.body.monospacedDigit())
@@ -460,9 +466,26 @@ struct ForecastView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .contentShape(Rectangle())
-    }    
+    }
+    
+    
+    // MARK: - UI Helpers
+    
+    private func prettyDate(_ apiDate: String) -> String {
+        guard let d = Self.apiDateFormatter.date(from: apiDate) else { return apiDate }
+        return Self.displayDateFormatter.string(from: d)
+    }
+    
+    private func chipTint(for level: VerdictLevel?) -> Color? {
+        guard let level else { return .gray }
+        switch level {
+        case .green: return .gray
+        case .yellow: return .yellow
+        case .red: return .red
+        }
+    }
+    
 }
-
 // MARK: - Safe Indexing
 
 extension Array {
