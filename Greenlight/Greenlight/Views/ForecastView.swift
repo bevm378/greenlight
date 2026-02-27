@@ -69,8 +69,6 @@ struct ForecastView: View {
     private struct Verdict {
         let level: VerdictLevel
         let feelsLikeLine: String
-        let rainLine: String
-        let windLine: String
         let whyLine: String
         let recommendation: String
     }
@@ -111,18 +109,22 @@ struct ForecastView: View {
                 // loaded state
                 if let forecast {
                     let i = 0
-                    let todayVerdict = makeVerdict(
-                        feelsLikeHighF: forecast.daily.apparent_temperature_max[safe: i],
-                        feelsLikeLowF: forecast.daily.apparent_temperature_min[safe: i],
-                        popMax: forecast.daily.precipitation_probability_max?[safe: i],
-                        rainInches: forecast.daily.rain_sum?[safe: i],
-                        windMph: forecast.daily.wind_speed_10m_max?[safe: i]
-                    )
-                    
+                    let feelsHi = forecast.daily.apparent_temperature_max[safe: i]
+                    let feelsLo = forecast.daily.apparent_temperature_min[safe: i]
                     let hi = forecast.daily.temperature_2m_max[safe: i]
                     let lo = forecast.daily.temperature_2m_min[safe: i]
                     let pop = forecast.daily.precipitation_probability_max?[safe: i]
                     let wind = forecast.daily.wind_speed_10m_max?[safe: i]
+                    let rain = forecast.daily.rain_sum?[safe: i]
+                    let todayVerdict = makeVerdict(
+                        feelsLikeHighF: feelsHi,
+                        feelsLikeLowF: feelsLo,
+                        actualHighF: hi,
+                        actualLowF: lo,
+                        popMax: pop,
+                        rainInches: rain,
+                        windMph: wind
+                    )
 
                     verdictCard(
                         todayVerdict,
@@ -171,7 +173,7 @@ struct ForecastView: View {
                 .accessibilityLabel(isSavedCity ? "Remove saved city" : "Save city")
             }
         }
-        .task { await loadForecast() }
+        .task(id: city.id) { await loadForecast() }
     }
     
     // MARK: - Networking
@@ -230,21 +232,20 @@ struct ForecastView: View {
     private func makeVerdict(
         feelsLikeHighF: Double?,
         feelsLikeLowF: Double?,
+        actualHighF: Double?,
+        actualLowF: Double?,
         popMax: Int?,
         rainInches: Double?,
         windMph: Double?
     ) -> Verdict {
         
-        let hi = feelsLikeHighF
-        let lo = feelsLikeLowF
-        
         // temperature flags
         var tempLevel: VerdictLevel? = nil
-        if let hi {
+        if let hi = actualHighF {
             if hi <= 25 { tempLevel = .red }
             else if hi <= 40 { tempLevel = .yellow }
         }
-        if let lo, lo <= 25, tempLevel != .red { tempLevel = .yellow }
+        if let lo = actualLowF, lo <= 25, tempLevel != .red { tempLevel = .yellow }
         
         // rain flags
         var rainLevel: VerdictLevel? = nil
@@ -265,13 +266,11 @@ struct ForecastView: View {
         
         // verdict card lines
         let feelsLikeLine: String = {
-            if let hi, let lo { return "Feels like \(Int(lo.rounded())) – \(Int(hi.rounded()))°F" }
-            if let hi { return "Feels like ~\(Int(hi.rounded()))°F" }
+            if let hi = feelsLikeHighF, let lo = feelsLikeLowF { return "Feels like \(Int(lo.rounded())) – \(Int(hi.rounded()))°F" }
+            if let hi = feelsLikeHighF { return "Feels like ~\(Int(hi.rounded()))°F" }
             return "Feels like --"
         }()
         
-        let rainLine = popMax.map { "Precip \($0)%" } ?? "Precip --"
-        let windLine = windMph.map { "Wind \(Int($0.rounded())) mph" } ?? "Wind --"
         let whyLine: String = {
             switch level {
             case .green:
@@ -306,31 +305,15 @@ struct ForecastView: View {
         return Verdict(
             level: level,
             feelsLikeLine: feelsLikeLine,
-            rainLine: rainLine,
-            windLine: windLine,
             whyLine: whyLine,
             recommendation: recommendation
         )
     }
     
-    
-    // MARK: - UI Helpers
-    
+    // MARK: - UI Helper
     private func prettyDate(_ apiDate: String) -> String {
         guard let d = Self.apiDateFormatter.date(from: apiDate) else { return apiDate }
         return Self.displayDateFormatter.string(from: d)
-    }
-    
-    private func labelRow(system: String, text: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Image(systemName: system)
-                .imageScale(.medium)
-                .frame(width: 25, alignment: .leading)
-                .foregroundStyle(.secondary)
-            
-            Text(text)
-                .fixedSize(horizontal: false, vertical: true)
-        }
     }
     
     // MARK: - Verdict Card
@@ -357,7 +340,7 @@ struct ForecastView: View {
         updatedText: String?
     ) -> some View {
 
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
 
             HStack(spacing: 10) {
                 Circle()
@@ -428,16 +411,36 @@ struct ForecastView: View {
     }
     
     private func forecastList(_ forecast: ForecastResponse) -> some View {
-        VStack(spacing: 0) {
-            ForEach(forecast.daily.time.indices, id: \.self) { idx in
-                forecastRow(
-                    dateText: prettyDate(forecast.daily.time[idx]),
-                    hi: forecast.daily.temperature_2m_max[idx],
-                    lo: forecast.daily.temperature_2m_min[idx],
-                    pop: forecast.daily.precipitation_probability_max?[safe: idx]
-                )
-
-                if idx != forecast.daily.time.indices.last {
+        
+        let dayCount = min(
+                forecast.daily.time.count,
+                forecast.daily.temperature_2m_max.count,
+                forecast.daily.temperature_2m_min.count
+        )
+        
+        return VStack(spacing: 0) {
+            ForEach(0..<dayCount, id: \.self) { idx in
+                NavigationLink {
+                    DayDetailView(
+                        cityName: "\(city.name), \(city.admin1 ?? city.country)",
+                        dateText: prettyDate(forecast.daily.time[idx]),
+                        hi: forecast.daily.temperature_2m_max[idx],
+                        lo: forecast.daily.temperature_2m_min[idx],
+                        pop: forecast.daily.precipitation_probability_max?[safe: idx],
+                        wind: forecast.daily.wind_speed_10m_max?[safe: idx],
+                        rain: forecast.daily.rain_sum?[safe: idx]
+                    )
+                } label: {
+                    forecastRow(
+                        dateText: prettyDate(forecast.daily.time[idx]),
+                        hi: forecast.daily.temperature_2m_max[idx],
+                        lo: forecast.daily.temperature_2m_min[idx],
+                        pop: forecast.daily.precipitation_probability_max?[safe: idx]
+                    )
+                }
+                .buttonStyle(.plain)
+                
+                if idx != dayCount - 1 {
                     Divider()
                         .opacity(0.6)
                         .padding(.leading, 12)
