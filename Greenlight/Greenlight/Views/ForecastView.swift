@@ -317,19 +317,6 @@ struct ForecastView: View {
     }
     
     // MARK: - Verdict Card
-    
-    private func metricBlock(_ label: String, _ value: String) -> some View {
-        HStack(spacing: 10) {
-            Text(label)
-                .foregroundStyle(.secondary)
-                .frame(width: 60, alignment: .leading)
-                    
-            Text(value)
-                .font(.body.monospacedDigit())
-                .foregroundStyle(.primary)
-                .frame(width: 60, alignment: .leading)
-        }
-    }
             
     private func verdictCard(
         _ verdict: Verdict,
@@ -340,73 +327,57 @@ struct ForecastView: View {
         updatedText: String?
     ) -> some View {
 
-        VStack(alignment: .leading, spacing: 8) {
-
-            HStack(spacing: 10) {
-                Circle()
-                    .fill(verdict.level.color)
-                    .frame(width: 12, height: 12)
-
-                Text(verdict.level.title)
-                    .font(.title3.weight(.semibold))
-
-                Spacer()
-            }
-
-            Text(verdict.feelsLikeLine)
-                .foregroundStyle(.secondary)
-
-            HStack {
-                Spacer(minLength: 0)
-            
-                Grid(horizontalSpacing: 16, verticalSpacing: 6) {
-                    GridRow {
-                        metricBlock("High", high.map { "\(Int($0.rounded()))°" } ?? "--")
-                        metricBlock("Precip", popMax.map { "\($0)%" } ?? "--")
-                    }
-                    
-                    GridRow {
-                        metricBlock("Low", low.map { "\(Int($0.rounded()))°" } ?? "--")
-                        metricBlock("Wind", windMph.map { "\(Int($0.rounded())) mph" } ?? "--")
-                    }
-                }
+        CardContainer(tint: verdict.level.color) {
+            VStack(alignment: .leading, spacing: 10) {
                 
-                Spacer(minLength: 0)
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(verdict.whyLine)
+                // header
+                HStack(spacing: 10) {
+                    Circle()
+                        .fill(verdict.level.color)
+                        .frame(width: 12, height: 12)
+                    Text(verdict.level.title)
+                        .font(.title2.weight(.semibold))
+                    Spacer()
+                }
+
+                // feels-like line
+                Text(verdict.feelsLikeLine)
                     .foregroundStyle(.secondary)
 
-                Text(verdict.recommendation)
-                    .font(.headline)
-            }
+                // metrics
+                Grid(horizontalSpacing: 12, verticalSpacing: 12) {
+                    GridRow {
+                        MetricChip("High", high.map { "\(Int($0.rounded()))°" } ?? "--")
+                        MetricChip("Low", low.map { "\(Int($0.rounded()))°" } ?? "--")
+                    }
+                    GridRow {
+                        MetricChip("Precip", popMax.map { "\($0)%" } ?? "--")
+                        MetricChip("Wind", windMph.map { "\(Int($0.rounded())) mph" } ?? "--")
+                    }
+                }
+                .padding(.top, 2)
 
-            if let updatedText {
-                Divider().opacity(0.5)
+                // why + recommendation lines
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(verdict.whyLine)
+                        .foregroundStyle(.secondary)
+                    Text(verdict.recommendation)
+                        .font(.headline)
+                }
 
-                HStack(spacing: 6) {
-                    Text("Updated")
-                        .foregroundStyle(.secondary)
-                    Text(updatedText)
-                        .font(.body.monospacedDigit())
-                        .foregroundStyle(.secondary)
+                // "updated" footer
+                if let updatedText {
+                    Divider().opacity(0.5)
+                    HStack(spacing: 6) {
+                        Text("Updated")
+                            .foregroundStyle(.secondary)
+                        Text(updatedText)
+                            .font(.body.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color(.secondarySystemGroupedBackground))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(verdict.level.color.opacity(0.06))
-                )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color(.separator).opacity(0.18))
-        )
         .padding(.horizontal)
     }
     
