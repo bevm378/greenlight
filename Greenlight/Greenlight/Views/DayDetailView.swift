@@ -36,14 +36,16 @@ struct DayDetailView: View {
                 }
                 .padding(.horizontal)
                 .padding(.top, 8)
+                .padding(.leading)
                 
                 VStack(alignment: .leading, spacing: 10) {
                     LazyVGrid(columns: columns, spacing: 12) {
-                        MetricChip("High", "\(Int(hi.rounded()))°")
-                        MetricChip("Low", "\(Int(lo.rounded()))°")
-                        MetricChip("Precip", pop.map { "\($0)%" } ?? "--")
-                        MetricChip("Wind", wind.map { "\(Int($0.rounded())) mph" } ?? "--")
+                        MetricChip("High", "\(Int(hi.rounded()))°", tint: .gray)
+                        MetricChip("Low", "\(Int(lo.rounded()))°", tint: .gray)
+                        MetricChip("Precip", pop.map { "\($0)%" } ?? "--", tint: .gray)
+                        MetricChip("Wind", wind.map { "\(Int($0.rounded())) mph" } ?? "--", tint: .gray)
                     }
+                    
                     if let rain {
                         Text("Rain total: \(String(format: "%.2f", rain)) in")
                             .font(.footnote)
@@ -68,8 +70,7 @@ struct DayDetailView: View {
             .padding(.bottom, 16)
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
-        .navigationTitle(dateText)
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("Weather Details")
     }
 }
 
