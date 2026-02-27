@@ -138,12 +138,15 @@ struct ForecastView: View {
                         updatedText: nil
                     )
                     .padding(.top, 8)
+                    .padding(.bottom, 4)
                     
                     Text("Daily Forecast")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal)
-                        .padding(.top, 4)
+                        .padding(.top)
+                        .padding(.leading, 20)
+                        .padding(.bottom, -4)
                     
                     forecastList(forecast)
                         .padding(.horizontal)
