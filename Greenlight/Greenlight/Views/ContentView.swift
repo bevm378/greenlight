@@ -117,7 +117,6 @@ struct ContentView: View {
                         }
                     }
                 }
-                .listStyle(.insetGrouped)
                 .scrollContentBackground(.hidden)
                 .background(Color(.systemGroupedBackground))
             }
