@@ -89,6 +89,7 @@ struct ForecastView: View {
     }
     
     // MARK: - Body
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
@@ -117,9 +118,21 @@ struct ForecastView: View {
                         rainInches: forecast.daily.rain_sum?[safe: i],
                         windMph: forecast.daily.wind_speed_10m_max?[safe: i]
                     )
+                    
+                    let hi = forecast.daily.temperature_2m_max[safe: i]
+                    let lo = forecast.daily.temperature_2m_min[safe: i]
+                    let pop = forecast.daily.precipitation_probability_max?[safe: i]
+                    let wind = forecast.daily.wind_speed_10m_max?[safe: i]
 
-                    verdictCard(todayVerdict)
-                        .padding(.top, 8)
+                    verdictCard(
+                        todayVerdict,
+                        high: hi,
+                        low: lo,
+                        popMax: pop,
+                        windMph: wind,
+                        updatedText: nil
+                    )
+                    .padding(.top, 8)
 
                     Text("Daily Forecast")
                         .font(.caption)
@@ -254,11 +267,11 @@ struct ForecastView: View {
         let feelsLikeLine: String = {
             if let hi, let lo { return "Feels like \(Int(lo.rounded())) – \(Int(hi.rounded()))°F" }
             if let hi { return "Feels like ~\(Int(hi.rounded()))°F" }
-            return "Feels like unavailable"
+            return "Feels like --"
         }()
         
-        let rainLine = popMax.map { "Precipitation \($0)%" } ?? "Precipitation unavailable"
-        let windLine = windMph.map { "Wind \(Int($0.rounded())) mph" } ?? "Wind unavailable"
+        let rainLine = popMax.map { "Precip \($0)%" } ?? "Precip --"
+        let windLine = windMph.map { "Wind \(Int($0.rounded())) mph" } ?? "Wind --"
         let whyLine: String = {
             switch level {
             case .green:
@@ -279,7 +292,7 @@ struct ForecastView: View {
         let recommendation: String = {
             switch level {
             case .green:
-                return "It's looking good outside!"
+                return "It's looking great outside!"
             case .yellow:
                 if tempLevel == .yellow { return "It's OK outside, but add a warm layer" }
                 if rainLevel == .yellow { return "It's OK outside, but bring a rain layer" }
@@ -300,6 +313,7 @@ struct ForecastView: View {
         )
     }
     
+    
     // MARK: - UI Helpers
     
     private func prettyDate(_ apiDate: String) -> String {
@@ -311,7 +325,7 @@ struct ForecastView: View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Image(systemName: system)
                 .imageScale(.medium)
-                .frame(width: 22, alignment: .leading)
+                .frame(width: 25, alignment: .leading)
                 .foregroundStyle(.secondary)
             
             Text(text)
@@ -319,33 +333,83 @@ struct ForecastView: View {
         }
     }
     
-    private func verdictCard(_ verdict: Verdict) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+    // MARK: - Verdict Card
+    
+    private func metricBlock(_ label: String, _ value: String) -> some View {
+        HStack(spacing: 10) {
+            Text(label)
+                .foregroundStyle(.secondary)
+                .frame(width: 60, alignment: .leading)
+                    
+            Text(value)
+                .font(.body.monospacedDigit())
+                .foregroundStyle(.primary)
+                .frame(width: 60, alignment: .leading)
+        }
+    }
+            
+    private func verdictCard(
+        _ verdict: Verdict,
+        high: Double?,
+        low: Double?,
+        popMax: Int?,
+        windMph: Double?,
+        updatedText: String?
+    ) -> some View {
+
+        VStack(alignment: .leading, spacing: 12) {
+
             HStack(spacing: 10) {
                 Circle()
                     .fill(verdict.level.color)
-                    .frame(width: 14, height: 14)
+                    .frame(width: 12, height: 12)
 
                 Text(verdict.level.title)
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                    .lineLimit(1)
+                    .font(.title3.weight(.semibold))
 
                 Spacer()
             }
 
-            VStack(alignment: .leading, spacing: 6) {
-                labelRow(system: "thermometer", text: verdict.feelsLikeLine)
-                labelRow(system: "cloud.rain", text: verdict.rainLine)
-                labelRow(system: "wind", text: verdict.windLine)
-                labelRow(system: "sparkles", text: verdict.whyLine)
-            }
-            .font(.body)
-            .foregroundStyle(.secondary)
+            Text(verdict.feelsLikeLine)
+                .foregroundStyle(.secondary)
 
-            Text(verdict.recommendation)
-                .font(.headline)
-                .padding(.top, 2)
+            HStack {
+                Spacer(minLength: 0)
+            
+                Grid(horizontalSpacing: 16, verticalSpacing: 6) {
+                    GridRow {
+                        metricBlock("High", high.map { "\(Int($0.rounded()))°" } ?? "--")
+                        metricBlock("Precip", popMax.map { "\($0)%" } ?? "--")
+                    }
+                    
+                    GridRow {
+                        metricBlock("Low", low.map { "\(Int($0.rounded()))°" } ?? "--")
+                        metricBlock("Wind", windMph.map { "\(Int($0.rounded())) mph" } ?? "--")
+                    }
+                }
+                
+                Spacer(minLength: 0)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(verdict.whyLine)
+                    .foregroundStyle(.secondary)
+
+                Text(verdict.recommendation)
+                    .font(.headline)
+            }
+
+            if let updatedText {
+                Divider().opacity(0.5)
+
+                HStack(spacing: 6) {
+                    Text("Updated")
+                        .foregroundStyle(.secondary)
+                    Text(updatedText)
+                        .font(.body.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
         .padding(14)
         .background(
@@ -353,7 +417,7 @@ struct ForecastView: View {
                 .fill(Color(.secondarySystemGroupedBackground))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
-                        .fill(verdict.level.color.opacity(0.08))
+                        .fill(verdict.level.color.opacity(0.06))
                 )
         )
         .overlay(
@@ -361,7 +425,6 @@ struct ForecastView: View {
                 .stroke(Color(.separator).opacity(0.18))
         )
         .padding(.horizontal)
-        .padding(.top, 4)
     }
     
     private func forecastList(_ forecast: ForecastResponse) -> some View {
@@ -409,14 +472,14 @@ struct ForecastView: View {
                     .gridColumnAlignment(.leading)
                 
                 // precipitation %
-                HStack(spacing: 6) {
+                HStack(spacing: 4) {
                     Image(systemName: "umbrella.fill")
                         .font(.caption)
                     Text(pop.map { "\($0)%" } ?? "--")
                         .font(.body.monospacedDigit())
                 }
                 .foregroundStyle(.secondary)
-                .frame(width: 70, alignment: .leading)
+                .frame(width: 55, alignment: .leading)
                 .gridColumnAlignment(.leading)
             }
         }

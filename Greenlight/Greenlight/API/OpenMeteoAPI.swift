@@ -8,6 +8,7 @@
 import Foundation
 
 // MARK: - Endpoints (Open-Meteo)
+
 let OpenMeteoAPI_root = "https://api.open-meteo.com/v1"
 let OpenMeteoAPI_endpoint = "\(OpenMeteoAPI_root)/forecast"
 
@@ -15,6 +16,7 @@ let OpenMeteoGeocoding_root = "https://geocoding-api.open-meteo.com/v1"
 let OpenMeteoGeocoding_endpoint = "\(OpenMeteoGeocoding_root)/search"
 
 // MARK: - API Errors
+
 enum OpenMeteoAPIError: Error {
     case noResults              // decoded fine, but no city matches
     case decodeFailed           // data came back, but didn't match models
@@ -22,6 +24,7 @@ enum OpenMeteoAPIError: Error {
 }
 
 // MARK: - City Search (name -> matching cities)
+
 func searchCities(query: String, count: Int = 10) async throws -> [City] {
     
     // normalize user input
