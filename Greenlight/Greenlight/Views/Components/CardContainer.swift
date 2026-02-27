@@ -13,7 +13,7 @@ struct CardContainer<Content: View> : View {
 
     init(tint: Color? = nil, @ViewBuilder content: () -> Content) {
         self.tint = tint
-            self.content = content()
+        self.content = content()
     }
 
     var body: some View {
