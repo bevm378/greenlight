@@ -48,10 +48,14 @@ struct ContentView: View {
             }
         }
     }
-
+    
     // MARK: - Search UI
     
     private var searchUI: some View {
+        ZStack {
+            Color(.systemGroupedBackground)
+                .ignoresSafeArea()
+            
             VStack(alignment: .leading, spacing: 12) {
                 // header
                 Text("Find a city, then get a go / caution / stop")
@@ -64,16 +68,20 @@ struct ContentView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .padding(10)
-                    .background(.ultraThinMaterial)
+                    .background(Color(.systemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color(.separator).opacity(0.25))
+                    )
                     .padding(.top, 8)
                     .padding(.horizontal)
-
+                
                 // loading spinner
                 if isLoading {
                     HStack{ Spacer(); ProgressView(); Spacer() }
                 }
-
+                
                 // error message (user-facing)
                 if let errorMessage {
                     Text(errorMessage)
@@ -118,13 +126,13 @@ struct ContentView: View {
                     }
                 }
                 .scrollContentBackground(.hidden)
-                .background(Color(.systemGroupedBackground))
-            }
-            .navigationTitle("City Search")
-            .onChange(of: query) { _, newValue in
-                scheduleSearch(newValue)
             }
         }
+        .navigationTitle("City Search")
+        .onChange(of: query) { _, newValue in
+            scheduleSearch(newValue)
+        }
+    }
     
     // MARK: - Row UI
     
