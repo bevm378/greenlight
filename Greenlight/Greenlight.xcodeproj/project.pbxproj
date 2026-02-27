@@ -15,6 +15,8 @@
 		6BDD58A22F419A7C00D03DFB /* OpenMeteoModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BDD58A12F419A7C00D03DFB /* OpenMeteoModels.swift */; };
 		6BDD58A62F47A5DD00D03DFB /* ForecastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BDD58A52F47A5DD00D03DFB /* ForecastView.swift */; };
 		6BDD58AA2F51684600D03DFB /* DayDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BDD58A92F51684600D03DFB /* DayDetailView.swift */; };
+		6BDD58AE2F51944100D03DFB /* CardContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BDD58AD2F51944100D03DFB /* CardContainer.swift */; };
+		6BDD58B02F5194EC00D03DFB /* MetricChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BDD58AF2F5194EC00D03DFB /* MetricChip.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +29,8 @@
 		6BDD58A12F419A7C00D03DFB /* OpenMeteoModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenMeteoModels.swift; sourceTree = "<group>"; };
 		6BDD58A52F47A5DD00D03DFB /* ForecastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastView.swift; sourceTree = "<group>"; };
 		6BDD58A92F51684600D03DFB /* DayDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayDetailView.swift; sourceTree = "<group>"; };
+		6BDD58AD2F51944100D03DFB /* CardContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardContainer.swift; sourceTree = "<group>"; };
+		6BDD58AF2F5194EC00D03DFB /* MetricChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricChip.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -97,6 +101,7 @@
 		6BDD589D2F418A2500D03DFB /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				6BDD58AC2F51941E00D03DFB /* Components */,
 				6B7E8F982F3E7CCB000F3499 /* ContentView.swift */,
 				6BDD58A52F47A5DD00D03DFB /* ForecastView.swift */,
 				6BDD58A92F51684600D03DFB /* DayDetailView.swift */,
@@ -109,6 +114,15 @@
 			children = (
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		6BDD58AC2F51941E00D03DFB /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				6BDD58AD2F51944100D03DFB /* CardContainer.swift */,
+				6BDD58AF2F5194EC00D03DFB /* MetricChip.swift */,
+			);
+			path = Components;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -184,6 +198,8 @@
 				6BDD58AA2F51684600D03DFB /* DayDetailView.swift in Sources */,
 				6BDD58A22F419A7C00D03DFB /* OpenMeteoModels.swift in Sources */,
 				6BDD58A62F47A5DD00D03DFB /* ForecastView.swift in Sources */,
+				6BDD58B02F5194EC00D03DFB /* MetricChip.swift in Sources */,
+				6BDD58AE2F51944100D03DFB /* CardContainer.swift in Sources */,
 				6B7E8F992F3E7CCB000F3499 /* ContentView.swift in Sources */,
 				6B7E8F972F3E7CCB000F3499 /* GreenlightApp.swift in Sources */,
 				6BDD58A02F418AAA00D03DFB /* OpenMeteoAPI.swift in Sources */,

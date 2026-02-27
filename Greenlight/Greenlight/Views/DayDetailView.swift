@@ -39,10 +39,10 @@ struct DayDetailView: View {
                 
                 VStack(alignment: .leading, spacing: 10) {
                     LazyVGrid(columns: columns, spacing: 12) {
-                        metricChip("High", "\(Int(hi.rounded()))°")
-                        metricChip("Low", "\(Int(lo.rounded()))°")
-                        metricChip("Precip", pop.map { "\($0)%" } ?? "--")
-                        metricChip("Wind", wind.map { "\(Int($0.rounded())) mph" } ?? "--")
+                        MetricChip("High", "\(Int(hi.rounded()))°")
+                        MetricChip("Low", "\(Int(lo.rounded()))°")
+                        MetricChip("Precip", pop.map { "\($0)%" } ?? "--")
+                        MetricChip("Wind", wind.map { "\(Int($0.rounded())) mph" } ?? "--")
                     }
                     if let rain {
                         Text("Rain total: \(String(format: "%.2f", rain)) in")
@@ -70,27 +70,6 @@ struct DayDetailView: View {
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationTitle(dateText)
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func metricChip(_ label: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            
-            Text(value)
-                .font(.body.monospacedDigit())
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.secondarySystemGroupedBackground))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(.separator).opacity(0.15))
-        )
     }
 }
 
