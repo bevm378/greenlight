@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct ForecastView: View {
+    @Environment(\.dismiss) private var dismiss
     
     // MARK: - Inputs
     
@@ -44,36 +45,9 @@ struct ForecastView: View {
         return df
     }()
     
-    // MARK: - Verdict Types
-    
-    private enum VerdictLevel {
-        case green, yellow, red
-        
-        var title: String {
-            switch self {
-            case .green: return "Go"
-            case .yellow: return "Caution"
-            case .red: return "Stop"
-            }
-        }
-        
-        var color: Color {
-            switch self {
-            case .green: return .green
-            case .yellow: return .yellow
-            case .red: return .red
-            }
-        }
-    }
-    
-    private struct Verdict {
-        let level: VerdictLevel
-        let feelsLikeLine: String
-        let whyLine: String
-        let recommendation: String
-        let tempLevel: VerdictLevel?
-        let rainLevel: VerdictLevel?
-        let windLevel: VerdictLevel?
+    private func prettyDate(_ apiDate: String) -> String {
+        guard let d = Self.apiDateFormatter.date(from: apiDate) else { return apiDate }
+        return Self.displayDateFormatter.string(from: d)
     }
     
     // MARK: - Derived State (Saved Cities)
@@ -157,29 +131,39 @@ struct ForecastView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle("\(city.name), \(city.admin1 ?? city.country)")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
         .toolbar {
-            
-            // left: change city
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                        Text("Back")
+                    }
+                }
+            }
+
             if let onChangeCity {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Change city") { onChangeCity() }
                 }
             }
-            
-            // right: save/unsave city (pin)
+
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    if !isSavedCity { saveLastCity(city) }
                     toggleSavedCity(city)
                 } label: {
                     Image(systemName: isSavedCity ? "pin.fill" : "pin")
                         .imageScale(.medium)
                 }
                 .tint(.accentColor)
-                .accessibilityLabel(isSavedCity ? "Remove saved city" : "Save city")
             }
         }
-        .task(id: city.id) { await loadForecast() }
+        .task(id: city.id) {
+            saveLastCity(city)
+            await loadForecast()
+        }
     }
     
     // MARK: - Networking
@@ -231,92 +215,6 @@ struct ForecastView: View {
               let string = String(data: data, encoding: .utf8)
         else { return }
         savedCityData = string
-    }
-    
-    // MARK: - Verdict Logic
-    
-    private func makeVerdict(
-        feelsLikeHighF: Double?,
-        feelsLikeLowF: Double?,
-        actualHighF: Double?,
-        actualLowF: Double?,
-        popMax: Int?,
-        rainInches: Double?,
-        windMph: Double?
-    ) -> Verdict {
-        
-        // temperature flags
-        var tempLevel: VerdictLevel? = nil
-        if let hi = actualHighF {
-            if hi <= 25 { tempLevel = .red }
-            else if hi <= 40 { tempLevel = .yellow }
-        }
-        if let lo = actualLowF, lo <= 25, tempLevel != .red { tempLevel = .yellow }
-        
-        // rain flags
-        var rainLevel: VerdictLevel? = nil
-        if let rain = rainInches, rain >= 0.50 { rainLevel = .red }
-        else if (rainInches ?? 0) >= 0.10 || (popMax ?? 0) >= 40 { rainLevel = .yellow }
-        
-        // wind flags
-        var windLevel: VerdictLevel? = nil
-        if let wind = windMph, wind >= 25 { windLevel = .red }
-        else if let wind = windMph, wind >= 15 { windLevel = .yellow }
-        
-        // overall verdict: any red -> red; else any yellow -> yellow; else green
-        let level: VerdictLevel = {
-            if tempLevel == .red || rainLevel == .red || windLevel == .red { return .red }
-            if tempLevel == .yellow || rainLevel == .yellow || windLevel == .yellow { return .yellow }
-            return .green
-        }()
-        
-        // verdict card lines
-        let feelsLikeLine: String = {
-            if let hi = feelsLikeHighF, let lo = feelsLikeLowF { return "Feels like \(Int(hi.rounded()))°  /  \(Int(lo.rounded()))°" }
-            if let hi = feelsLikeHighF { return "Feels like ~\(Int(hi.rounded()))°" }
-            return "Feels like --"
-        }()
-        
-        let whyLine: String = {
-            switch level {
-            case .green:
-                return "Clear conditions"
-            case .yellow:
-                if tempLevel == .yellow { return "Chilly" }
-                if rainLevel == .yellow { return "Light rain" }
-                if windLevel == .yellow { return "Breezy" }
-                return "Mixed conditions"
-            case .red:
-                if tempLevel == .red { return "Frigid" }
-                if rainLevel == .red { return "Heavy rain" }
-                if windLevel == .red { return "Windy" }
-                return "Harsh conditions"
-            }
-        }()
-        
-        let recommendation: String = {
-            switch level {
-            case .green:
-                return "It's looking great outside!"
-            case .yellow:
-                if tempLevel == .yellow { return "It's OK outside, but add a warm layer" }
-                if rainLevel == .yellow { return "It's OK outside, but bring a rain layer" }
-                if windLevel == .yellow { return "It's OK outside, but stick to sheltered routes" }
-                return "It's OK outside, but keep plans flexible"
-            case .red:
-                return "It's better to stay indoors"
-            }
-        }()
-        
-        return Verdict(
-            level: level,
-            feelsLikeLine: feelsLikeLine,
-            whyLine: whyLine,
-            recommendation: recommendation,
-            tempLevel: tempLevel,
-            rainLevel: rainLevel,
-            windLevel: windLevel
-        )
     }
     
     // MARK: - Verdict Card
@@ -401,6 +299,17 @@ struct ForecastView: View {
         return VStack(spacing: 0) {
             ForEach(0..<dayCount, id: \.self) { idx in
                 NavigationLink {
+                    
+                    let verdict = makeVerdict(
+                        feelsLikeHighF: forecast.daily.apparent_temperature_max[safe: idx],
+                        feelsLikeLowF: forecast.daily.apparent_temperature_min[safe: idx],
+                        actualHighF: forecast.daily.temperature_2m_max[safe: idx],
+                        actualLowF: forecast.daily.temperature_2m_min[safe: idx],
+                        popMax: forecast.daily.precipitation_probability_max?[safe: idx],
+                        rainInches: forecast.daily.rain_sum?[safe: idx],
+                        windMph: forecast.daily.wind_speed_10m_max?[safe: idx]
+                    )
+                    
                     DayDetailView(
                         cityName: "\(city.name), \(city.admin1 ?? city.country)",
                         dateText: prettyDate(forecast.daily.time[idx]),
@@ -408,8 +317,10 @@ struct ForecastView: View {
                         lo: forecast.daily.temperature_2m_min[idx],
                         pop: forecast.daily.precipitation_probability_max?[safe: idx],
                         wind: forecast.daily.wind_speed_10m_max?[safe: idx],
-                        rain: forecast.daily.rain_sum?[safe: idx]
+                        rain: forecast.daily.rain_sum?[safe: idx],
+                        verdict: verdict
                     )
+                    
                 } label: {
                     forecastRow(
                         dateText: prettyDate(forecast.daily.time[idx]),
@@ -470,24 +381,6 @@ struct ForecastView: View {
         .padding(.vertical, 10)
         .contentShape(Rectangle())
     }
-    
-    
-    // MARK: - UI Helpers
-    
-    private func prettyDate(_ apiDate: String) -> String {
-        guard let d = Self.apiDateFormatter.date(from: apiDate) else { return apiDate }
-        return Self.displayDateFormatter.string(from: d)
-    }
-    
-    private func chipTint(for level: VerdictLevel?) -> Color? {
-        guard let level else { return .gray }
-        switch level {
-        case .green: return .gray
-        case .yellow: return .yellow
-        case .red: return .red
-        }
-    }
-    
 }
 // MARK: - Safe Indexing
 
