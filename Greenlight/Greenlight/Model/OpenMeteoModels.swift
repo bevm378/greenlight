@@ -48,4 +48,6 @@ struct DailyForecast: Hashable, Codable {
     let precipitation_probability_max: [Int]?
     let rain_sum: [Double]?
     let wind_speed_10m_max: [Double]?
+    let wind_direction_10m_dominant: [Double]?
+    let wind_gusts_10m_max: [Double]?
 }
