@@ -117,7 +117,6 @@ struct ForecastView: View {
                     )
                     .padding(.top, 8)
                     .padding(.bottom, 4)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
                     
                     Text("Daily Forecast")
                         .font(.caption)
@@ -129,7 +128,6 @@ struct ForecastView: View {
                     
                     forecastList(forecast)
                         .padding(.horizontal)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
             .padding(.bottom, 16)
