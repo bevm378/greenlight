@@ -92,6 +92,8 @@ struct ForecastView: View {
                     let lo = forecast.daily.temperature_2m_min[safe: i]
                     let pop = forecast.daily.precipitation_probability_max?[safe: i]
                     let wind = forecast.daily.wind_speed_10m_max?[safe: i]
+                    let windDir = forecast.daily.wind_direction_10m_dominant?[safe: i]
+                    let gust = forecast.daily.wind_gusts_10m_max?[safe: i]
                     let rain = forecast.daily.rain_sum?[safe: i]
                     let todayVerdict = makeVerdict(
                         feelsLikeHighF: feelsHi,
@@ -109,6 +111,8 @@ struct ForecastView: View {
                         low: lo,
                         popMax: pop,
                         windMph: wind,
+                        windDirDeg: windDir,
+                        windGust: gust,
                         updatedText: nil
                     )
                     .padding(.top, 8)
@@ -225,6 +229,8 @@ struct ForecastView: View {
         low: Double?,
         popMax: Int?,
         windMph: Double?,
+        windDirDeg: Double?,
+        windGust: Double?,
         updatedText: String?
     ) -> some View {
         
@@ -261,8 +267,12 @@ struct ForecastView: View {
                         }
                         MetricChip("Wind", windMph.map { "\(Int($0.rounded())) mph" } ?? "--",
                                    tint: chipTint(for: verdict.windLevel)) {
-                            WindDial(mph: windMph ?? 0, 
-                                     color: Color.accentColor, size: 30)
+                            let t = min(max((windMph ?? 0) / 30.0, 0), 1)
+                            WindDial(mph: windMph ?? 0,
+                                     color: Color.accentColor.opacity(0.25 + 0.75 * t),
+                                     directionDeg: windDirDeg.map { $0 + 180 },
+                                     maxMph: max(windGust ?? 30, 30),
+                                     size: 30)
                         }
                     }
                 }
