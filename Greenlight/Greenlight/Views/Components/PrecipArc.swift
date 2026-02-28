@@ -30,7 +30,7 @@ struct PrecipArc: View {
                     AngularGradient(
                         colors: [color.opacity(0.4), color],
                         center: .center
-                    ), style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                    ), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
                 .animation(.easeInOut(duration: 0.6), value: p)
