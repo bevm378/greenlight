@@ -42,7 +42,7 @@ func searchCities(query: String, count: Int = 10) async throws -> [City] {
     ]
 
     guard let url = components?.url else {
-        throw OpenMeteoAPIError.decodeFailed
+        fatalError("URL didn't work :p")
     }
 
     // make request
@@ -50,7 +50,7 @@ func searchCities(query: String, count: Int = 10) async throws -> [City] {
 
     // try decoding into response wrapper
     guard let decoded = try? JSONDecoder().decode(GeocodingResponse.self, from: data) else {
-        throw OpenMeteoAPIError.decodeFailed
+        fatalError("URL didn't work :p")
     }
     
     let results = decoded.results ?? []
@@ -78,7 +78,9 @@ func getForecast(lat: Double, lon: Double) async throws -> ForecastResponse {
                 "apparent_temperature_min",
                 "precipitation_probability_max",
                 "rain_sum",
-                "wind_speed_10m_max"
+                "wind_speed_10m_max",
+                "wind_direction_10m_dominant",
+                "wind_gusts_10m_max"
             ].joined(separator: ",")
         ),
 
