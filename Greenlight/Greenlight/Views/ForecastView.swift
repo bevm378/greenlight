@@ -257,10 +257,13 @@ struct ForecastView: View {
                         MetricChip("Precip", popMax.map { "\($0)%" } ?? "--",
                                    tint: chipTint(for: verdict.rainLevel)) {
                             PrecipArc(probability: Double(popMax ?? 0) / 100,
-                                      color: chipTint(for: verdict.rainLevel), size: 30)
+                                      color: Color.accentColor, size: 30)
                         }
                         MetricChip("Wind", windMph.map { "\(Int($0.rounded())) mph" } ?? "--",
-                                   tint: chipTint(for: verdict.windLevel))
+                                   tint: chipTint(for: verdict.windLevel)) {
+                            WindDial(mph: windMph ?? 0, 
+                                     color: Color.accentColor, size: 30)
+                        }
                     }
                 }
                 .padding(.top, 2)
