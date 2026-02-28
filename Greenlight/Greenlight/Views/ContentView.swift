@@ -39,13 +39,7 @@ struct ContentView: View {
     
     var body: some View {
         NavigationStack {
-            Group {
-                if let lastCity, trimmedQuery.isEmpty {
-                    ForecastView(city: lastCity) {
-                        clearLastCityAndReturnToSearch()
-                    }
-                } else { searchUI }
-            }
+            searchUI
         }
     }
     
@@ -104,6 +98,34 @@ struct ContentView: View {
                 
                 
                 List {
+                    // continue (only when not actively searching)
+                    if let lastCity, trimmedQuery.isEmpty {
+                        Section(header: Text("Continue")) {
+                            NavigationLink {
+                                ForecastView(city: lastCity, onChangeCity: nil)
+                            } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("\(lastCity.name), \(lastCity.admin1 ?? lastCity.country)")
+                                            .lineLimit(1)
+                                        Text("Last viewed")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "arrow.right")
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) { savedCityData = "" } label: {
+                                    Label("Clear", systemImage: "xmark")
+                                }
+                            }
+                        }
+                        .textCase(nil)
+                    }
+                    
                     // favorites list (only when user has favorites)
                     if !savedCities.isEmpty {
                         Section(header: Text("Saved Cities")) {
@@ -173,14 +195,6 @@ struct ContentView: View {
               let decoded = try? JSONDecoder().decode(City.self, from: data)
         else { return nil }
         return decoded
-    }
-    
-    private func clearLastCityAndReturnToSearch() {
-        savedCityData = ""
-        query = ""
-        cities = []
-        errorMessage = nil
-        isLoading = false
     }
     
     // MARK: - Persistence (Saved Cities List)
