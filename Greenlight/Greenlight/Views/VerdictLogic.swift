@@ -137,9 +137,9 @@ func makeVerdict(
 // MARK: - UI Helpers (chip tinting)
 
 func chipTint(for level: VerdictLevel?) -> Color {
-    guard let level else { return .gray } // neutral when not triggered or unknown
+    guard let level else { return .secondary } // neutral when not triggered or unknown
     switch level {
-    case .green: return .gray
+    case .green: return .secondary
     case .yellow: return Color(red: 0.8, green: 0.67, blue: 0.0)
     case .red: return .red
     }
