@@ -45,7 +45,7 @@ struct DayDetailView: View {
                     LazyVGrid(columns: columns, spacing: 12) {
                         MetricChip("High", "\(Int(hi.rounded()))°", tint: chipTint(for: verdict.tempLevel))
                         MetricChip("Low", "\(Int(lo.rounded()))°", tint: chipTint(for: verdict.tempLevel))
-                        MetricChip("Precip", pop.map { "\($0)%" } ?? "--", tint: chipTint(for: verdict.rainLevel))
+                        MetricChip("Precip", pop.map { "\($0)%" } ?? "--", tint: chipTint(for: verdict.rainLevel)) 
                         MetricChip("Wind", wind.map { "\(Int($0.rounded())) mph" } ?? "--", tint: chipTint(for: verdict.windLevel))
                     }
                     
