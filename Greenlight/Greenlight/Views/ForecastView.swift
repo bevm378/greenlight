@@ -255,7 +255,10 @@ struct ForecastView: View {
                     }
                     GridRow {
                         MetricChip("Precip", popMax.map { "\($0)%" } ?? "--",
-                                   tint: chipTint(for: verdict.rainLevel))
+                                   tint: chipTint(for: verdict.rainLevel)) {
+                            PrecipArc(probability: Double(popMax ?? 0) / 100,
+                                      color: chipTint(for: verdict.rainLevel), size: 30)
+                        }
                         MetricChip("Wind", windMph.map { "\(Int($0.rounded())) mph" } ?? "--",
                                    tint: chipTint(for: verdict.windLevel))
                     }
