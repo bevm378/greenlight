@@ -113,8 +113,6 @@ struct ContentView: View {
                                             .foregroundStyle(.secondary)
                                     }
                                     Spacer()
-                                    Image(systemName: "arrow.right")
-                                        .foregroundStyle(.secondary)
                                 }
                             }
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -128,7 +126,7 @@ struct ContentView: View {
                     
                     // favorites list (only when user has favorites)
                     if !savedCities.isEmpty {
-                        Section(header: Text("Saved Cities")) {
+                        Section("Saved Cities") {
                             ForEach(savedCities, id: \.id) { city in
                                 NavigationLink {
                                     ForecastView(city: city, onChangeCity: nil)
@@ -158,6 +156,7 @@ struct ContentView: View {
                                 }
                             }
                         }
+                        .textCase(nil)
                     }
                 }
                 .scrollContentBackground(.hidden)
@@ -249,7 +248,7 @@ struct ContentView: View {
         }
 
         do {
-            let results = try await searchCities(query: trimmed, count: 25)
+            let results = try await searchCities(query: trimmed, count: 11)
             if Task.isCancelled { return }
             
             // normalize once (for comparisons)
