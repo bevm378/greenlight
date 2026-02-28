@@ -117,6 +117,7 @@ struct ForecastView: View {
                     )
                     .padding(.top, 8)
                     .padding(.bottom, 4)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                     
                     Text("Daily Forecast")
                         .font(.caption)
@@ -128,6 +129,7 @@ struct ForecastView: View {
                     
                     forecastList(forecast)
                         .padding(.horizontal)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
             .padding(.bottom, 16)
@@ -179,11 +181,15 @@ struct ForecastView: View {
         errorMessage = nil
         
         do {
-            forecast = try await getForecast(lat: city.latitude, lon: city.longitude)
+            let newForecast = try await getForecast(lat: city.latitude, lon: city.longitude)
+            withAnimation(.easeInOut(duration: 0.25)) {
+                forecast = newForecast
+            }
         } catch {
-            print("Forecast failed:", error)
-            forecast = nil
-            errorMessage = "Couldn’t load forecast right now."
+            withAnimation(.easeInOut(duration: 0.2)) {
+                forecast = nil
+                errorMessage = "Couldn’t load forecast right now."
+            }
         }
         
         isLoading = false
@@ -242,8 +248,11 @@ struct ForecastView: View {
                     Circle()
                         .fill(verdict.level.color)
                         .frame(width: 12, height: 12)
+                        .scaleEffect(verdict.level == .red ? 1.05 : 1.0)
+                        .animation(.easeInOut(duration: 0.2), value: verdict.level)
                     Text(verdict.level.title)
                         .font(.title2.weight(.semibold))
+                        .animation(.easeInOut(duration: 0.2), value: verdict.level)
                     Spacer()
                 }
                 
@@ -262,8 +271,10 @@ struct ForecastView: View {
                     GridRow {
                         MetricChip("Precip", popMax.map { "\($0)%" } ?? "--",
                                    tint: chipTint(for: verdict.rainLevel)) {
+                            let p = Double(popMax ?? 0) / 100
                             PrecipArc(probability: Double(popMax ?? 0) / 100,
-                                      color: Color.accentColor, size: 30)
+                                      color: Color.accentColor.opacity(0.25 + 0.75 * p),
+                                      size: 30)
                         }
                         MetricChip("Wind", windMph.map { "\(Int($0.rounded())) mph" } ?? "--",
                                    tint: chipTint(for: verdict.windLevel)) {
