@@ -8,38 +8,33 @@
 import SwiftUI
 
 struct PrecipArc: View {
-
     let probability: Double
     let color: Color
     var size: CGFloat = 36
 
+    private var p: Double {
+        min(max(probability, 0), 1)
+    }
+    
+    private var lineWidth: CGFloat {
+        max(3, size * 0.16)
+    }
+    
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color(.systemGray5), lineWidth: 6)
+                .stroke(Color(.systemGray5), lineWidth: lineWidth)
             Circle()
-                .trim(from: 0, to: probability)
+                .trim(from: 0, to: p)
                 .stroke(
                     AngularGradient(
-                        colors: [color.opacity(0.3), color],
+                        colors: [color.opacity(0.4), color],
                         center: .center
                     ), style: StrokeStyle(lineWidth: 6, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
-                .animation(.easeInOut(duration: 0.6), value: probability)
-            //Text("\(Int(probability * 100))%")
-                .font(.caption.weight(.semibold))
+                .animation(.easeInOut(duration: 0.6), value: p)
         }
         .frame(width: size, height: size)
-    }
-}
-
-private func precipColor(pop: Int?) -> Color {
-    let p = pop ?? 0
-    switch p {
-    case 0...10: return .secondary
-    case 11...30: return .blue.opacity(0.7)
-    case 31...60: return .blue
-    default: return .indigo
     }
 }
