@@ -2,7 +2,7 @@
 //  VerdictLogic.swift
 //  Greenlight
 //
-//  Created by keckuser on 2/27/26.
+//  Created by Beverly Mutuku on 2/27/26.
 //
 
 import SwiftUI
@@ -136,11 +136,11 @@ func makeVerdict(
 
 // MARK: - UI Helpers (chip tinting)
 
-func chipTint(for level: VerdictLevel?) -> Color? {
+func chipTint(for level: VerdictLevel?) -> Color {
     guard let level else { return .gray } // neutral when not triggered or unknown
     switch level {
     case .green: return .gray
-    case .yellow: return .yellow
+    case .yellow: return Color(red: 0.8, green: 0.67, blue: 0.0)
     case .red: return .red
     }
 }
