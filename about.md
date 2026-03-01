@@ -4,7 +4,7 @@ Greenlight is an iOS weather app that answers one simple question:
 
 **“Is today a good day to go outside?”**
 
-Search for a city, load the forecast, and Greenlight gives a **Go / Caution / Stop** verdict for the day! The verdict is based on “outside factors” like temperature, rain, and wind, and is paired with a short reason and practical recommendation (ex: “bring a rain layer”).
+Search for a city, load the forecast, and Greenlight gives a clear **Go / Caution / Stop** verdict for the day (along with the forecast for the upcoming week). The verdict is based on “outside factors” like temperature, rain, and wind, and is paired with a short reason and practical recommendation (ex: “bring a rain layer”).
 
 
 ## What the app does
