@@ -25,7 +25,7 @@ struct ForecastView: View {
     @State private var isLoading = false
     @State private var forecast: ForecastResponse? = nil
     @State private var errorMessage: String? = nil
-    @State private var didLoadOnce = false
+    @State private var lastUpdatedAt: Date? = nil
     
     // MARK: - Date Formatting
     
@@ -46,9 +46,23 @@ struct ForecastView: View {
         return df
     }()
     
+    // display “Updated 6:51 PM”
+        private static let updatedTimeFormatter: DateFormatter = {
+            let df = DateFormatter()
+            df.locale = Locale.current
+            df.timeStyle = .short
+            df.dateStyle = .none
+            return df
+        }()
+    
     private func prettyDate(_ apiDate: String) -> String {
         guard let d = Self.apiDateFormatter.date(from: apiDate) else { return apiDate }
         return Self.displayDateFormatter.string(from: d)
+    }
+    
+    private var updatedText: String? {
+        guard let t = lastUpdatedAt else { return nil }
+        return Self.updatedTimeFormatter.string(from: t)
     }
     
     // MARK: - Derived State (Saved Cities)
@@ -85,8 +99,8 @@ struct ForecastView: View {
                 }
                 
                 // loaded state
-                if let forecast {
-                    Group {
+                Group {
+                    if let forecast {
                         let i = 0
                         let feelsHi = forecast.daily.apparent_temperature_max[safe: i]
                         let feelsLo = forecast.daily.apparent_temperature_min[safe: i]
@@ -115,7 +129,7 @@ struct ForecastView: View {
                             windMph: wind,
                             windDirDeg: windDir,
                             windGust: gust,
-                            updatedText: nil
+                            updatedText: updatedText
                         )
                         .padding(.top, 8)
                         .padding(.bottom, 4)
@@ -132,9 +146,9 @@ struct ForecastView: View {
                         forecastList(forecast)
                             .padding(.horizontal)
                     }
-                    .opacity(didLoadOnce ? 1 : 0)
-                    .animation(.easeInOut(duration: 0.25), value: didLoadOnce)
                 }
+                .opacity(forecast == nil ? 0 : 1)
+                .animation(.easeInOut(duration: 0.25), value: forecast != nil)
             }
             .padding(.bottom, 16)
         }
@@ -188,7 +202,7 @@ struct ForecastView: View {
             let newForecast = try await getForecast(lat: city.latitude, lon: city.longitude)
             withAnimation(.easeInOut(duration: 0.25)) {
                 forecast = newForecast
-                didLoadOnce = true
+                lastUpdatedAt = Date()
             }
         } catch {
             withAnimation(.easeInOut(duration: 0.2)) {
@@ -257,7 +271,8 @@ struct ForecastView: View {
                         .animation(.easeInOut(duration: 0.25), value: verdict.level)
                     Text(verdict.level.title)
                         .font(.title2.weight(.semibold))
-                        .animation(.easeInOut(duration: 0.2), value: verdict.level)
+                        .foregroundStyle(verdict.level.color)
+                        .animation(.easeInOut(duration: 0.25), value: verdict.level)
                     Spacer()
                 }
                 
@@ -302,13 +317,15 @@ struct ForecastView: View {
                         .font(.headline)
                 }
                 
-                // "updated" footer
+                // updated footer
                 if let updatedText {
                     Divider().opacity(0.5)
                     HStack(spacing: 6) {
                         Text("Updated")
+                            .font(.caption2)
                             .foregroundStyle(.secondary)
                         Text(updatedText)
+                            .font(.caption2)
                             .font(.body.monospacedDigit())
                             .foregroundStyle(.secondary)
                     }
@@ -318,7 +335,7 @@ struct ForecastView: View {
         .padding(.horizontal)
     }
     
-    // MARK: - Forecast
+    // MARK: - Forecast List
     
     private func forecastList(_ forecast: ForecastResponse) -> some View {
         
@@ -331,7 +348,6 @@ struct ForecastView: View {
         return VStack(spacing: 0) {
             ForEach(0..<dayCount, id: \.self) { idx in
                 NavigationLink {
-                    
                     let verdict = makeVerdict(
                         feelsLikeHighF: forecast.daily.apparent_temperature_max[safe: idx],
                         feelsLikeLowF: forecast.daily.apparent_temperature_min[safe: idx],
@@ -352,7 +368,6 @@ struct ForecastView: View {
                         rain: forecast.daily.rain_sum?[safe: idx],
                         verdict: verdict
                     )
-                    
                 } label: {
                     forecastRow(
                         dateText: prettyDate(forecast.daily.time[idx]),
