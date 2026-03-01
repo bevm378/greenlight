@@ -2,12 +2,13 @@
 //  CardContainer.swift
 //  Greenlight
 //
-//  Created by keckuser on 2/27/26.
+//  Created by Beverly Mutuku on 2/27/26.
 //
 
 import SwiftUI
 
 struct CardContainer<Content: View> : View {
+    
     private let tint: Color?
     private let content: Content
 
@@ -19,19 +20,23 @@ struct CardContainer<Content: View> : View {
     var body: some View {
         content
             .padding(14)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color(.secondarySystemGroupedBackground))
-                    .overlay {
-                        if let tint {
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(tint.opacity(0.06))
-                        }
-                    }
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(Color(.separator).opacity(0.15))
-            )
+            .background(cardBackground)
+            .overlay(cardBorder)
+    }
+    
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: 14)
+            .fill(Color(.secondarySystemGroupedBackground))
+            .overlay {
+                if let tint {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(tint.opacity(0.06))
+                }
+            }
+    }
+         
+    private var cardBorder: some View {
+        RoundedRectangle(cornerRadius: 14)
+            .stroke(Color(.separator).opacity(0.15))
     }
 }
