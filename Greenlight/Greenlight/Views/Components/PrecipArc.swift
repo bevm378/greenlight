@@ -8,10 +8,12 @@
 import SwiftUI
 
 struct PrecipArc: View {
+    
     let probability: Double
     let color: Color
     var size: CGFloat = 36
 
+    // clamp to 0...1 so bad/empty data can't break arc
     private var p: Double {
         min(max(probability, 0), 1)
     }
@@ -22,8 +24,11 @@ struct PrecipArc: View {
     
     var body: some View {
         ZStack {
+            // track
             Circle()
                 .stroke(Color(.systemGray5), lineWidth: lineWidth)
+            
+            // progress arc
             Circle()
                 .trim(from: 0, to: p)
                 .stroke(
@@ -36,5 +41,7 @@ struct PrecipArc: View {
                 .animation(.easeInOut(duration: 0.6), value: p)
         }
         .frame(width: size, height: size)
+        .accessibilityLabel("Precipitation probability")
+        .accessibilityValue("\(Int(p * 100)) percent")
     }
 }

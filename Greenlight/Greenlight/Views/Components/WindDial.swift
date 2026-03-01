@@ -8,12 +8,14 @@
 import SwiftUI
 
 struct WindDial: View {
+    
     let mph: Double
     let color: Color
     var directionDeg: Double? = nil
     var maxMph: Double = 30
     var size: CGFloat = 36
 
+    // normalize mph to 0...1 using maxMph as a reference
     private var t: Double {
         let denom = max(maxMph, 1)
         return min(max(mph / denom, 0), 1)
@@ -25,9 +27,11 @@ struct WindDial: View {
 
     var body: some View {
         ZStack {
+            // track
             Circle()
                 .stroke(Color(.systemGray5), lineWidth: lineWidth)
 
+            // progress arc
             Circle()
                 .trim(from: 0, to: t)
                 .stroke(
@@ -40,6 +44,7 @@ struct WindDial: View {
                 .rotationEffect(.degrees(-90))
                 .animation(.easeInOut(duration: 0.6), value: t)
 
+            // direction arrow
             if let directionDeg {
                 Image(systemName: "arrow.up")
                     .font(.system(size: size * 0.28, weight: .semibold))
@@ -49,5 +54,7 @@ struct WindDial: View {
             }
         }
         .frame(width: size, height: size)
+        .accessibilityLabel("Wind")
+        .accessibilityValue("\(Int(mph.rounded())) miles per hour")
     }
 }
