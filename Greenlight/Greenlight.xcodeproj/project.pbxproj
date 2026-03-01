@@ -100,6 +100,7 @@
 			isa = PBXGroup;
 			children = (
 				6BDD58A12F419A7C00D03DFB /* OpenMeteoModels.swift */,
+				6BDD58B12F52851F00D03DFB /* VerdictLogic.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -111,7 +112,6 @@
 				6B7E8F982F3E7CCB000F3499 /* ContentView.swift */,
 				6BDD58A52F47A5DD00D03DFB /* ForecastView.swift */,
 				6BDD58A92F51684600D03DFB /* DayDetailView.swift */,
-				6BDD58B12F52851F00D03DFB /* VerdictLogic.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
