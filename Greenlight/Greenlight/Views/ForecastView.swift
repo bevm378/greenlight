@@ -365,6 +365,8 @@ struct ForecastView: View {
                         lo: forecast.daily.temperature_2m_min[idx],
                         pop: forecast.daily.precipitation_probability_max?[safe: idx],
                         wind: forecast.daily.wind_speed_10m_max?[safe: idx],
+                        windGust: forecast.daily.wind_gusts_10m_max?[safe: idx],
+                        windDirDeg: forecast.daily.wind_direction_10m_dominant?[safe: idx],
                         rain: forecast.daily.rain_sum?[safe: idx],
                         verdict: verdict
                     )

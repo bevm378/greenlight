@@ -16,6 +16,8 @@ struct DayDetailView: View {
     let lo: Double
     let pop: Int?
     let wind: Double?
+    let windGust: Double?
+    let windDirDeg: Double?
     let rain: Double?
     let verdict: Verdict
     
@@ -47,7 +49,9 @@ struct DayDetailView: View {
                         MetricChip("High", "\(Int(hi.rounded()))°", tint: chipTint(for: verdict.tempLevel))
                         MetricChip("Low", "\(Int(lo.rounded()))°", tint: chipTint(for: verdict.tempLevel))
                         MetricChip("Precip", pop.map { "\($0)%" } ?? "--", tint: chipTint(for: verdict.rainLevel))
+                        let dir = compass(windDirDeg)
                         MetricChip("Wind", wind.map { "\(Int($0.rounded())) mph" } ?? "--", tint: chipTint(for: verdict.windLevel))
+                        MetricChip("Gusts", windGust.map { "\(Int($0.rounded())) mph" } ?? "--", tint: chipTint(for: verdict.windLevel))
                     }
                     
                     if let rain {
@@ -90,6 +94,13 @@ struct DayDetailView: View {
     }
 }
 
+func compass(_ deg: Double?) -> String? {
+    guard let deg else { return nil }
+    let dirs = ["N","NE","E","SE","S","SW","W","NW"]
+    let i = Int(((deg + 22.5).truncatingRemainder(dividingBy: 360)) / 45.0)
+    return dirs[i]
+}
+
 private let verdictForPreview = Verdict(
     level: .green,
     feelsLikeLine: "Feels like 70° / 55°",
@@ -109,6 +120,8 @@ private let verdictForPreview = Verdict(
             lo: 53,
             pop: 0,
             wind: 8,
+            windGust: 18,
+            windDirDeg: 270,
             rain: 0.00,
             verdict: verdictForPreview
         )
