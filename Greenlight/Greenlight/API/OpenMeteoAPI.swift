@@ -42,7 +42,7 @@ func searchCities(query: String, count: Int = 10) async throws -> [City] {
     ]
 
     guard let url = components?.url else {
-        fatalError("URL didn't work :p")
+        throw OpenMeteoAPIError.unexpectedAPIError
     }
 
     // make request
@@ -94,7 +94,7 @@ func getForecast(lat: Double, lon: Double) async throws -> ForecastResponse {
     ]
 
     guard let url = components?.url else {
-        fatalError("URL didn't work :p")
+        throw OpenMeteoAPIError.unexpectedAPIError
     }
 
     let (data, _) = try await URLSession.shared.data(from: url)
