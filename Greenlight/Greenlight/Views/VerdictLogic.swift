@@ -112,7 +112,7 @@ func makeVerdict(
     let recommendation: String = {
         switch level {
         case .green:
-            return "It's looking great outside!"
+            return "It's looking pretty good outside!"
         case .yellow:
             if tempLevel == .yellow { return "It's OK outside, but add a warm layer" }
             if rainLevel == .yellow { return "It's OK outside, but bring a rain layer" }
