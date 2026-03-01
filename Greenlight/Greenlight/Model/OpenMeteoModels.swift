@@ -30,7 +30,7 @@ struct City: Hashable, Codable {
 
 // MARK: - Forecast
 
-// forecast response wrapper
+// forecast response wrapper for the `/forecast` endpoint
 struct ForecastResponse: Hashable, Codable {
     let latitude: Double
     let longitude: Double
@@ -38,7 +38,7 @@ struct ForecastResponse: Hashable, Codable {
     let daily: DailyForecast
 }
 
-// daily values requested in forecast API call
+// daily fields requested in forecast API call
 struct DailyForecast: Hashable, Codable {
     let time: [String]
     let temperature_2m_max: [Double]
