@@ -25,6 +25,7 @@ struct ForecastView: View {
     @State private var isLoading = false
     @State private var forecast: ForecastResponse? = nil
     @State private var errorMessage: String? = nil
+    @State private var didLoadOnce = false
     
     // MARK: - Date Formatting
     
@@ -71,7 +72,7 @@ struct ForecastView: View {
                 
                 // loading state
                 if isLoading {
-                    HStack { Spacer(); ProgressView(); Spacer() }
+                    HStack { Spacer(); ProgressView().tint(.secondary); Spacer() }
                         .padding(.top, 12)
                 }
                 
@@ -85,49 +86,54 @@ struct ForecastView: View {
                 
                 // loaded state
                 if let forecast {
-                    let i = 0
-                    let feelsHi = forecast.daily.apparent_temperature_max[safe: i]
-                    let feelsLo = forecast.daily.apparent_temperature_min[safe: i]
-                    let hi = forecast.daily.temperature_2m_max[safe: i]
-                    let lo = forecast.daily.temperature_2m_min[safe: i]
-                    let pop = forecast.daily.precipitation_probability_max?[safe: i]
-                    let wind = forecast.daily.wind_speed_10m_max?[safe: i]
-                    let windDir = forecast.daily.wind_direction_10m_dominant?[safe: i]
-                    let gust = forecast.daily.wind_gusts_10m_max?[safe: i]
-                    let rain = forecast.daily.rain_sum?[safe: i]
-                    let todayVerdict = makeVerdict(
-                        feelsLikeHighF: feelsHi,
-                        feelsLikeLowF: feelsLo,
-                        actualHighF: hi,
-                        actualLowF: lo,
-                        popMax: pop,
-                        rainInches: rain,
-                        windMph: wind
-                    )
-                    
-                    verdictCard(
-                        todayVerdict,
-                        high: hi,
-                        low: lo,
-                        popMax: pop,
-                        windMph: wind,
-                        windDirDeg: windDir,
-                        windGust: gust,
-                        updatedText: nil
-                    )
-                    .padding(.top, 8)
-                    .padding(.bottom, 4)
-                    
-                    Text("Daily Forecast")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal)
-                        .padding(.top)
-                        .padding(.leading, 20)
-                        .padding(.bottom, -4)
-                    
-                    forecastList(forecast)
-                        .padding(.horizontal)
+                    Group {
+                        let i = 0
+                        let feelsHi = forecast.daily.apparent_temperature_max[safe: i]
+                        let feelsLo = forecast.daily.apparent_temperature_min[safe: i]
+                        let hi = forecast.daily.temperature_2m_max[safe: i]
+                        let lo = forecast.daily.temperature_2m_min[safe: i]
+                        let pop = forecast.daily.precipitation_probability_max?[safe: i]
+                        let wind = forecast.daily.wind_speed_10m_max?[safe: i]
+                        let windDir = forecast.daily.wind_direction_10m_dominant?[safe: i]
+                        let gust = forecast.daily.wind_gusts_10m_max?[safe: i]
+                        let rain = forecast.daily.rain_sum?[safe: i]
+                        let todayVerdict = makeVerdict(
+                            feelsLikeHighF: feelsHi,
+                            feelsLikeLowF: feelsLo,
+                            actualHighF: hi,
+                            actualLowF: lo,
+                            popMax: pop,
+                            rainInches: rain,
+                            windMph: wind
+                        )
+                        
+                        verdictCard(
+                            todayVerdict,
+                            high: hi,
+                            low: lo,
+                            popMax: pop,
+                            windMph: wind,
+                            windDirDeg: windDir,
+                            windGust: gust,
+                            updatedText: nil
+                        )
+                        .padding(.top, 8)
+                        .padding(.bottom, 4)
+                        .shadow(color: .black.opacity(0.05), radius: 6, y: 2)
+                        
+                        Text("Daily Forecast")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal)
+                            .padding(.top)
+                            .padding(.leading, 20)
+                            .padding(.bottom, -4)
+                        
+                        forecastList(forecast)
+                            .padding(.horizontal)
+                    }
+                    .opacity(didLoadOnce ? 1 : 0)
+                    .animation(.easeInOut(duration: 0.25), value: didLoadOnce)
                 }
             }
             .padding(.bottom, 16)
@@ -182,6 +188,7 @@ struct ForecastView: View {
             let newForecast = try await getForecast(lat: city.latitude, lon: city.longitude)
             withAnimation(.easeInOut(duration: 0.25)) {
                 forecast = newForecast
+                didLoadOnce = true
             }
         } catch {
             withAnimation(.easeInOut(duration: 0.2)) {
@@ -238,7 +245,7 @@ struct ForecastView: View {
         updatedText: String?
     ) -> some View {
         
-        CardContainer(tint: nil) {
+        CardContainer(tint: verdict.level.color.opacity(0.6)) {
             VStack(alignment: .leading, spacing: 10) {
                 
                 // header
@@ -247,7 +254,7 @@ struct ForecastView: View {
                         .fill(verdict.level.color)
                         .frame(width: 12, height: 12)
                         .scaleEffect(verdict.level == .red ? 1.05 : 1.0)
-                        .animation(.easeInOut(duration: 0.2), value: verdict.level)
+                        .animation(.easeInOut(duration: 0.25), value: verdict.level)
                     Text(verdict.level.title)
                         .font(.title2.weight(.semibold))
                         .animation(.easeInOut(duration: 0.2), value: verdict.level)
