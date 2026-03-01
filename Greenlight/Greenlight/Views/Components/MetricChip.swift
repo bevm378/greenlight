@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct MetricChip<Trailing: View>: View {
+    
     let label: String
     let value: String
     var tint: Color? = nil
@@ -40,10 +41,12 @@ struct MetricChip<Trailing: View>: View {
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(.secondarySystemGroupedBackground))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill((tint ?? .clear).opacity(0.08))
-                )
+                .overlay {
+                    if let tint {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(tint.opacity(0.08))
+                    }
+                }
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12)
@@ -52,6 +55,7 @@ struct MetricChip<Trailing: View>: View {
     }
 }
 
+// convenience init when you don't want a trailing view
 extension MetricChip where Trailing == EmptyView {
     init(_ label: String, _ value: String, tint: Color? = nil) {
         self.init(label, value, tint: tint) { EmptyView() }
