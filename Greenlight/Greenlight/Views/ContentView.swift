@@ -31,8 +31,10 @@ struct ContentView: View {
     
     private var trimmedQuery: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
     
+    // decode saved city once for "Continue"
     private var lastCity: City? { loadLastCity() }
     
+    // decode saved cities list once for "Saved Cities"
     private var savedCities: [City] { loadSavedCities() }
     
     // MARK: - Body
@@ -51,20 +53,23 @@ struct ContentView: View {
                 .ignoresSafeArea()
             
             VStack(alignment: .leading, spacing: 12) {
-                // header
+                // help text
                 HStack {
                     Text("Find a city, then get a ")
                         .foregroundStyle(.secondary)
                     + Text("go")
                         .foregroundStyle(.green)
+                        .fontWeight(.semibold)
                     + Text(" / ")
                         .foregroundStyle(.secondary)
                     + Text("caution")
                         .foregroundStyle(Color.orange.opacity(0.75))
+                        .fontWeight(.semibold)
                     + Text(" / ")
                         .foregroundStyle(.secondary)
                     + Text("stop")
                         .foregroundStyle(.red)
+                        .fontWeight(.semibold)
                 }
                 .font(.subheadline)
                 .padding(.horizontal)
@@ -85,7 +90,7 @@ struct ContentView: View {
                 
                 // loading spinner
                 if isLoading {
-                    HStack{ Spacer(); ProgressView(); Spacer() }
+                    HStack{ Spacer(); ProgressView().tint(.secondary); Spacer() }
                 }
                 
                 // error message (user-facing)
@@ -100,7 +105,7 @@ struct ContentView: View {
                 List {
                     // continue (only when not actively searching)
                     if let lastCity, trimmedQuery.isEmpty {
-                        Section(header: Text("Continue")) {
+                        Section(header: Text("Continue").font(.footnote)) {
                             NavigationLink {
                                 ForecastView(city: lastCity, onChangeCity: nil)
                             } label: {
@@ -109,7 +114,7 @@ struct ContentView: View {
                                         Text("\(lastCity.name), \(lastCity.admin1 ?? lastCity.country)")
                                             .lineLimit(1)
                                         Text("Last viewed")
-                                            .font(.caption)
+                                            .font(.footnote)
                                             .foregroundStyle(.secondary)
                                     }
                                     Spacer()
@@ -124,9 +129,9 @@ struct ContentView: View {
                         .textCase(nil)
                     }
                     
-                    // favorites list (only when user has favorites)
+                    // saved cities
                     if !savedCities.isEmpty {
-                        Section("Saved Cities") {
+                        Section(header: Text("Saved Cities").font(.footnote)) {
                             ForEach(savedCities, id: \.id) { city in
                                 NavigationLink {
                                     ForecastView(city: city, onChangeCity: nil)
@@ -147,7 +152,7 @@ struct ContentView: View {
                     
                     // results list (only when user typed something)
                     if !trimmedQuery.isEmpty {
-                        Section("Results") {
+                        Section(header: Text("Results").font(.footnote)) {
                             ForEach(cities, id: \.id) { city in
                                 NavigationLink {
                                     ForecastView(city: city, onChangeCity: nil)
@@ -160,6 +165,7 @@ struct ContentView: View {
                     }
                 }
                 .scrollContentBackground(.hidden)
+                .animation(.easeInOut(duration: 0.2), value: cities)
             }
         }
         .navigationTitle("City Search")
@@ -187,7 +193,7 @@ struct ContentView: View {
         .contentShape(Rectangle())
     }
         
-    // MARK: - Persistence (Last City)
+    // MARK: - Persistence Helpers
     
     private func loadLastCity() -> City? {
         guard let data = savedCityData.data(using: .utf8),
@@ -195,9 +201,7 @@ struct ContentView: View {
         else { return nil }
         return decoded
     }
-    
-    // MARK: - Persistence (Saved Cities List)
-    
+        
     private func loadSavedCities() -> [City] {
         guard let data = savedCitiesData.data(using: .utf8),
               let decoded = try? JSONDecoder().decode([City].self, from: data)
@@ -233,6 +237,9 @@ struct ContentView: View {
             return
         }
         
+        cities = []
+        errorMessage = nil
+        
         // debounce: wait a bit before hitting the API
         searchTask = Task {
             try? await Task.sleep(nanoseconds: 350_000_000) // 0.35s
@@ -248,7 +255,7 @@ struct ContentView: View {
         }
 
         do {
-            let results = try await searchCities(query: trimmed, count: 11)
+            let results = try await searchCities(query: trimmed, count: 25)
             if Task.isCancelled { return }
             
             // normalize once (for comparisons)
