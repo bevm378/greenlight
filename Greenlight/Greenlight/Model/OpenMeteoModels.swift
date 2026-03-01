@@ -50,4 +50,5 @@ struct DailyForecast: Hashable, Codable {
     let wind_speed_10m_max: [Double]?
     let wind_direction_10m_dominant: [Double]?
     let wind_gusts_10m_max: [Double]?
+    let uv_index_max: [Double]?
 }

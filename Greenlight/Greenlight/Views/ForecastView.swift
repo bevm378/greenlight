@@ -368,6 +368,7 @@ struct ForecastView: View {
                         windGust: forecast.daily.wind_gusts_10m_max?[safe: idx],
                         windDirDeg: forecast.daily.wind_direction_10m_dominant?[safe: idx],
                         rain: forecast.daily.rain_sum?[safe: idx],
+                        uvMax: forecast.daily.uv_index_max?[safe: idx],
                         verdict: verdict
                     )
                 } label: {

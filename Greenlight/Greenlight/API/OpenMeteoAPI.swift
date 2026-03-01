@@ -80,7 +80,8 @@ func getForecast(lat: Double, lon: Double) async throws -> ForecastResponse {
                 "rain_sum",
                 "wind_speed_10m_max",
                 "wind_direction_10m_dominant",
-                "wind_gusts_10m_max"
+                "wind_gusts_10m_max",
+                "uv_index_max"
             ].joined(separator: ",")
         ),
 

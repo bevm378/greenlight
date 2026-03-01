@@ -19,6 +19,7 @@ struct DayDetailView: View {
     let windGust: Double?
     let windDirDeg: Double?
     let rain: Double?
+    let uvMax: Double?
     let verdict: Verdict
     
     private let columns = [
@@ -48,10 +49,12 @@ struct DayDetailView: View {
                     LazyVGrid(columns: columns, spacing: 12) {
                         MetricChip("High", "\(Int(hi.rounded()))°", tint: chipTint(for: verdict.tempLevel))
                         MetricChip("Low", "\(Int(lo.rounded()))°", tint: chipTint(for: verdict.tempLevel))
-                        MetricChip("Precip", pop.map { "\($0)%" } ?? "--", tint: chipTint(for: verdict.rainLevel))
                         let dir = compass(windDirDeg)
                         MetricChip("Wind", wind.map { "\(Int($0.rounded())) mph" } ?? "--", tint: chipTint(for: verdict.windLevel))
                         MetricChip("Gusts", windGust.map { "\(Int($0.rounded())) mph" } ?? "--", tint: chipTint(for: verdict.windLevel))
+                        MetricChip("Precip", pop.map { "\($0)%" } ?? "--", tint: chipTint(for: verdict.rainLevel))
+                        MetricChip("UV", uvMax.map { String(format: "%.0f", $0) } ?? "--",
+                                   tint: (uvMax ?? 0) >= 8 ? .red : (uvMax ?? 0) >= 6 ? Color(red: 0.8, green: 0.67, blue: 0.0) : .secondary)
                     }
                     
                     if let rain {
@@ -123,6 +126,7 @@ private let verdictForPreview = Verdict(
             windGust: 18,
             windDirDeg: 270,
             rain: 0.00,
+            uvMax: 7,
             verdict: verdictForPreview
         )
     }
